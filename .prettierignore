@@ -1,2 +1,3 @@
 pnpm-lock.yaml
 docs/PRD.md
+packages/roster/src/roster.v1.ts

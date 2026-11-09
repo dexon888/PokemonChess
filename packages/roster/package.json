@@ -1,0 +1,31 @@
+{
+  "name": "@pokemon-chess/roster",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Versioned Pokémon roster (species, types, sprite URLs) generated from @pkmn/dex.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "generate": "tsx scripts/build-roster.ts"
+  },
+  "dependencies": {
+    "@pokemon-chess/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@pkmn/dex": "^0.10.0",
+    "@pkmn/img": "^0.2.40",
+    "tsx": "^4.20.0",
+    "vitest": "^3.2.0"
+  }
+}
