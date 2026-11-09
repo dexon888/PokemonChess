@@ -115,24 +115,11 @@ body {
     0 0 0 1.5px rgba(244, 246, 255, 0.45),
     0 2px 5px rgba(0, 0, 0, 0.45);
 }
-.role-badge {
+/* Chess silhouette in the bottom-left corner: large enough to read, no box around it. */
+.piece-icon {
   position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  line-height: 1;
-  font-family: serif;
-}
-.role-white {
-  background: #f4f6ff;
-  color: #070a14;
-  border: 1px solid #070a14;
-}
-.role-black {
-  background: #070a14;
-  color: #f4f6ff;
-  border: 1px solid rgba(244, 246, 255, 0.55);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.55));
 }
 .type-tag {
   position: absolute;

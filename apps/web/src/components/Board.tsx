@@ -11,14 +11,8 @@ import {
 } from "@pokemon-chess/engine";
 import { useLayoutEffect, useRef } from "react";
 import { FADE_MS, LUNGE_MS, SLIDE_MS, type Motion } from "../game/motion";
-import {
-  EFFECT_STYLE,
-  ROLE_GLYPH,
-  ROLE_NAME,
-  TYPE_COLOR,
-  typeCode,
-  typeTextColor,
-} from "../game/theme";
+import { EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeCode, typeTextColor } from "../game/theme";
+import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
 
 interface Props {
@@ -332,18 +326,13 @@ function PieceView({
             flip={piece.color === "black"}
           />
         </span>
-        <span
-          className={`role-badge ${piece.color === "white" ? "role-white" : "role-black"}`}
-          style={{
-            left: q * 0.04,
-            bottom: q * 0.04,
-            width: q * 0.3,
-            height: q * 0.3,
-            fontSize: q * 0.22,
-          }}
-        >
-          {ROLE_GLYPH[piece.role]}
-        </span>
+        <PieceIcon
+          role={piece.role}
+          color={piece.color}
+          size={Math.max(16, q * 0.42)}
+          className="piece-icon"
+          style={{ left: q * 0.01, bottom: q * 0.01 }}
+        />
         <span
           className="type-tag"
           style={{
