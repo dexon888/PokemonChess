@@ -20,7 +20,9 @@ Milestone 0 (planning) was approved on 2026-11-08. M1 and M2 run in parallel.
 - [x] Applying actions: battles on the board, bonus turns, castling-right and en passant
       bookkeeping, promotion, wins (incl. R1/R2), draws, resign/timeout; random assignment;
       perft to depth 3 (PR 3)
-- [ ] Roster build script (`@pkmn/dex` → `roster.v1.json`)
-- [ ] Local hot-seat web app (M3)
+- [x] Roster v1: 1,083 entries (1,025 species + regional forms) from `@pkmn/dex` (PR 4)
+- [x] Local hot-seat web app with the Game Screen v1 design, sprites, attack preview, battle
+      banners, promotion dialog, game-over stats (PR 4)
+- [ ] M3 polish: move animations, keyboard arrow navigation on the board, mobile log collapse
 
 Design files: the Game Screen v1 canvas on claude.ai.
