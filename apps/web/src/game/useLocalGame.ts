@@ -19,6 +19,7 @@ import {
 } from "@pokemon-chess/engine";
 import { ROSTER_V1 } from "@pokemon-chess/roster";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { motionFromEvents, type Motion } from "./motion";
 import { ROLE_NAME } from "./theme";
 
 export type LogTag =
@@ -79,6 +80,7 @@ export function useLocalGame() {
     kind: BattleOutcome;
     id: number;
   } | null>(null);
+  const [motion, setMotion] = useState<Motion | null>(null);
   const counter = useRef(0);
 
   const moves = useMemo(
@@ -97,6 +99,7 @@ export function useLocalGame() {
     setBanner(null);
     setPendingPromotion(null);
     setHitSquare(null);
+    setMotion(null);
     setStats({ white: emptyStats(), black: emptyStats() });
   }, []);
 
@@ -194,6 +197,7 @@ export function useLocalGame() {
         }
       }
 
+      setMotion(motionFromEvents(before, events, ++counter.current));
       if (action.type === "move") setLastMove({ from: action.from, to: action.to });
       setStats(nextStats);
       setLog((l) => [...entries.reverse(), ...l]);
@@ -242,6 +246,7 @@ export function useLocalGame() {
     log,
     banner,
     hitSquare,
+    motion,
     stats,
     pendingPromotion,
     clickSquare,

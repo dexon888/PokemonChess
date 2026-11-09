@@ -23,6 +23,9 @@ Milestone 0 (planning) was approved on 2026-11-08. M1 and M2 run in parallel.
 - [x] Roster v1: 1,083 entries (1,025 species + regional forms) from `@pkmn/dex` (PR 4)
 - [x] Local hot-seat web app with the Game Screen v1 design, sprites, attack preview, battle
       banners, promotion dialog, game-over stats (PR 4)
-- [ ] M3 polish: move animations, keyboard arrow navigation on the board, mobile log collapse
+- [x] M3 polish: move animations driven by engine events (slides, castling, lunges on dodged and
+      immune attacks, knocked-out pieces fade after the hit; off with reduced motion)
+- [ ] M3 polish: keyboard arrow navigation on the board
+- [ ] M3 polish: collapsible battle log on mobile
 
 Design files: the Game Screen v1 canvas on claude.ai.
