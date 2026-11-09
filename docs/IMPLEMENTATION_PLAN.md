@@ -17,8 +17,10 @@ Milestone 0 (planning) was approved on 2026-11-08. M1 and M2 run in parallel.
 - [x] Repo scaffold, CI, engine type chart, seeded RNG, battle resolver (PR 1)
 - [x] Board representation and legal-move generation, incl. castling, en passant and promotion
       flags, stalemate detection, and the king-threat cue (PR 2)
-- [ ] Applying actions: battle resolution on the board, bonus turns, castling-right and en passant
-      bookkeeping, promotion, victory and draw detection, perft check
+- [x] Applying actions: battles on the board, bonus turns, castling-right and en passant
+      bookkeeping, promotion, wins (incl. R1/R2), draws, resign/timeout; random assignment;
+      perft to depth 3 (PR 3)
 - [ ] Roster build script (`@pkmn/dex` → `roster.v1.json`)
+- [ ] Local hot-seat web app (M3)
 
 Design files: the Game Screen v1 canvas on claude.ai.
