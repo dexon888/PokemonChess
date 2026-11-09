@@ -25,7 +25,9 @@ Milestone 0 (planning) was approved on 2026-11-08. M1 and M2 run in parallel.
       banners, promotion dialog, game-over stats (PR 4)
 - [x] M3 polish: move animations driven by engine events (slides, castling, lunges on dodged and
       immune attacks, knocked-out pieces fade after the hit; off with reduced motion)
-- [ ] M3 polish: keyboard arrow navigation on the board
+- [x] M3 polish: chess-piece silhouettes on every piece so the role reads at a glance
+- [x] M3 polish: keyboard play on the board (ARIA grid, one Tab stop, arrows/Home/End move focus,
+      Enter selects or moves, Esc cancels)
 - [ ] M3 polish: collapsible battle log on mobile
 
 Design files: the Game Screen v1 canvas on claude.ai.
