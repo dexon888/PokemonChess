@@ -11,14 +11,8 @@ import {
 } from "@pokemon-chess/engine";
 import { useEffect, useRef } from "react";
 import type { Banner, LogEntry, LogTag, Stats } from "../game/useLocalGame";
-import {
-  EFFECT_RESULT,
-  EFFECT_STYLE,
-  ROLE_GLYPH,
-  ROLE_NAME,
-  TYPE_COLOR,
-  typeTextColor,
-} from "../game/theme";
+import { EFFECT_RESULT, EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeTextColor } from "../game/theme";
+import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
 
 const card = "rounded-2xl border border-line bg-card";
@@ -129,8 +123,9 @@ export function SelectedPanel({
           <h2 className="font-display text-2xl font-bold tracking-tight">{piece.species}</h2>
           <div className="flex flex-wrap items-center gap-1.5">
             <TypeChip type={piece.type} />
-            <span className="rounded-md bg-[#F4F6FF] px-2 py-0.5 text-xs font-semibold text-ink-dark">
-              {ROLE_GLYPH[piece.role]} {ROLE_NAME[piece.role]}
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-card-2 py-0.5 pl-1 pr-2 text-xs font-semibold">
+              <PieceIcon role={piece.role} color={piece.color} size={16} />
+              {ROLE_NAME[piece.role]}
             </span>
             <span className="rounded-md border border-line bg-card-2 px-2 py-0.5 text-xs font-semibold">
               {squareName(selected)}
@@ -300,7 +295,7 @@ export function PromotionDialog({
               onClick={() => onPick(r)}
               className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-line bg-card-2 hover:border-accent"
             >
-              <span className="text-3xl">{ROLE_GLYPH[r]}</span>
+              <PieceIcon role={r} color="white" size={36} />
               <span className="text-xs font-semibold">{ROLE_NAME[r]}</span>
             </button>
           ))}
