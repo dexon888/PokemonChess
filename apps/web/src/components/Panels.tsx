@@ -1,0 +1,401 @@
+import {
+  effectiveness,
+  kingThreatened,
+  squareName,
+  type Color,
+  type GameState,
+  type Move,
+  type PokemonType,
+  type Role,
+  type Square,
+} from "@pokemon-chess/engine";
+import { useEffect, useRef } from "react";
+import type { Banner, LogEntry, LogTag, Stats } from "../game/useLocalGame";
+import {
+  EFFECT_RESULT,
+  EFFECT_STYLE,
+  ROLE_GLYPH,
+  ROLE_NAME,
+  TYPE_COLOR,
+  typeTextColor,
+} from "../game/theme";
+import { Sprite } from "./Sprite";
+
+const card = "rounded-2xl border border-line bg-card";
+
+export function TypeChip({ type }: { type: PokemonType }) {
+  return (
+    <span
+      className="rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+      style={{ background: TYPE_COLOR[type], color: typeTextColor(type) }}
+    >
+      {type}
+    </span>
+  );
+}
+
+export function PlayerBar({ game, color, name }: { game: GameState; color: Color; name: string }) {
+  const active = game.status.state === "active" && game.turn === color;
+  const left = game.board.filter((p) => p?.color === color).length;
+  const threatened = game.status.state === "active" && kingThreatened(game, color);
+  return (
+    <div
+      className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 bg-card px-3 py-2 ${
+        active ? "border-accent" : "border-transparent outline outline-1 outline-line"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-xs font-bold ${
+            color === "white"
+              ? "border-accent bg-[#F4F6FF] text-ink-dark"
+              : "border-muted bg-[#070A14]"
+          }`}
+        >
+          {color === "white" ? "W" : "B"}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[15px] font-semibold">
+            {name}
+            {active ? " · to move" : ""}
+          </span>
+          <span className="text-xs text-muted">
+            {color === "white" ? "White" : "Black"} · {left} pieces left
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {threatened && (
+          <span className="rounded-full bg-[#F87171] px-3 py-1 text-xs font-semibold text-[#2A0707]">
+            King threatened!
+          </span>
+        )}
+        {active && game.bonusTurn && (
+          <span className="rounded-full bg-[#FBBF24] px-3 py-1 text-[13px] font-semibold text-[#1A1405]">
+            Bonus turn · move again
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SelectedPanel({
+  game,
+  selected,
+  moves,
+}: {
+  game: GameState;
+  selected: Square | null;
+  moves: Move[];
+}) {
+  const piece = selected !== null ? game.board[selected] : null;
+  if (!piece || selected === null) {
+    return (
+      <section aria-label="Selected Pokémon" className={`${card} p-5 text-sm text-muted`}>
+        Select one of your pieces to see its Pokémon, its legal moves, and how effective each attack
+        would be.
+      </section>
+    );
+  }
+  const targets = moves
+    .filter((m) => m.defender !== undefined)
+    .map((m) => {
+      const d = game.board[m.defender as Square];
+      return d ? { m, d, eff: effectiveness(piece.type, d.type) } : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => b.eff - a.eff);
+
+  return (
+    <section aria-label="Selected Pokémon" className={`${card} flex flex-col gap-4 p-5`}>
+      <div className="flex items-center gap-4">
+        <div className="relative flex h-28 w-28 shrink-0 items-end justify-center rounded-2xl border border-line bg-card-2">
+          <span
+            className="platform platform-white"
+            style={{
+              left: 14,
+              bottom: 12,
+              width: 82,
+              height: 22,
+              ["--type" as string]: TYPE_COLOR[piece.type],
+            }}
+          />
+          <span className="relative mb-2">
+            <Sprite species={piece.species} type={piece.type} size={96} />
+          </span>
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
+          <h2 className="font-display text-2xl font-bold tracking-tight">{piece.species}</h2>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <TypeChip type={piece.type} />
+            <span className="rounded-md bg-[#F4F6FF] px-2 py-0.5 text-xs font-semibold text-ink-dark">
+              {ROLE_GLYPH[piece.role]} {ROLE_NAME[piece.role]}
+            </span>
+            <span className="rounded-md border border-line bg-card-2 px-2 py-0.5 text-xs font-semibold">
+              {squareName(selected)}
+            </span>
+            <span className="text-xs text-muted">{moves.length} legal moves</span>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">
+            Attack preview · {targets.length} {targets.length === 1 ? "target" : "targets"}
+          </h3>
+          <span className="text-xs text-muted">10% dodge on every attack</span>
+        </div>
+        {targets.length === 0 && (
+          <p className="text-sm text-muted">No pieces to attack from here.</p>
+        )}
+        {targets.map(({ m, d, eff }) => (
+          <div key={m.to} className="flex items-center gap-3 rounded-xl bg-card-2 px-3 py-2.5">
+            <span
+              className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg font-display text-[15px] font-bold"
+              style={
+                eff === 0
+                  ? { border: "1.5px dashed #9AA6C8", color: "#CBD5E1" }
+                  : { background: EFFECT_STYLE[eff].bg, color: EFFECT_STYLE[eff].fg }
+              }
+            >
+              {EFFECT_STYLE[eff].label}
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-semibold">{d.species}</span>
+              <span className="text-xs text-muted">
+                {d.type} · {ROLE_NAME[d.role]} · {squareName(m.defender as Square)}
+              </span>
+            </div>
+            <span className="text-right text-[13px] font-medium">{EFFECT_RESULT[eff]}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const TAG_STYLE: Record<LogTag, [string, string]> = {
+  MOVE: ["#26305A", "#E8ECF8"],
+  "2×": ["#34D399", "#06281C"],
+  CRIT: ["#FBBF24", "#1A1405"],
+  KO: ["#CBD5E1", "#0B1020"],
+  "½×": ["#FB923C", "#2A1204"],
+  "0×": ["#334155", "#E2E8F0"],
+  DODGE: ["#2DD4BF", "#042F2B"],
+  PROMO: ["#A98FF3", "#160A33"],
+  BONUS: ["#FBBF24", "#1A1405"],
+  END: ["#6EA8FE", "#0B1020"],
+};
+
+export function BattleLog({ log }: { log: LogEntry[] }) {
+  return (
+    <section aria-label="Battle log" className={`${card} flex min-h-0 flex-col gap-3 p-5`}>
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-display text-[17px] font-semibold">Battle log</h3>
+        <span className="text-xs text-muted">newest first</span>
+      </div>
+      <ol className="flex max-h-72 flex-col gap-2.5 overflow-y-auto pr-1" aria-live="polite">
+        {log.length === 0 && <li className="text-sm text-muted">White moves first. Good luck!</li>}
+        {log.map((e) => (
+          <li key={e.id} className="flex items-start gap-2.5">
+            <span
+              className="w-[52px] shrink-0 rounded-md py-0.5 text-center text-[11px] font-bold tracking-wide"
+              style={{ background: TAG_STYLE[e.tag][0], color: TAG_STYLE[e.tag][1] }}
+            >
+              {e.tag}
+            </span>
+            <span className={`text-[13px] leading-snug ${e.tag === "MOVE" ? "text-muted" : ""}`}>
+              {e.color && (
+                <span className="font-semibold">{e.color === "white" ? "White" : "Black"}: </span>
+              )}
+              {e.text}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+const BANNER_STYLE: Record<Banner["outcome"], { label: string; color: string }> = {
+  superEffective: { label: "2×", color: "#34D399" },
+  crit: { label: "CRIT", color: "#FBBF24" },
+  captured: { label: "1×", color: "#E8ECF8" },
+  resisted: { label: "½×", color: "#FB923C" },
+  immune: { label: "0×", color: "#CBD5E1" },
+  dodged: { label: "DODGE", color: "#2DD4BF" },
+};
+
+export function OutcomeBanner({ banner, onDone }: { banner: Banner | null; onDone: () => void }) {
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!banner) return;
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(onDone, 1500);
+    return () => window.clearTimeout(timer.current);
+  }, [banner, onDone]);
+  if (!banner) return null;
+  const s = BANNER_STYLE[banner.outcome];
+  return (
+    <div
+      key={banner.id}
+      className="banner pointer-events-none absolute inset-x-0 top-1/2 z-20 flex justify-center"
+    >
+      <div className="flex items-center gap-3 rounded-2xl border border-line bg-[#0E1428]/95 px-5 py-3 shadow-2xl">
+        <span
+          className="rounded-lg px-2 py-1 font-display text-sm font-bold"
+          style={{ background: s.color, color: "#0B1020" }}
+        >
+          {s.label}
+        </span>
+        <div className="flex flex-col">
+          <span className="font-display text-xl font-bold" style={{ color: s.color }}>
+            {banner.title}
+          </span>
+          <span className="text-sm">{banner.line}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PROMO: Role[] = ["queen", "rook", "bishop", "knight"];
+
+export function PromotionDialog({
+  open,
+  onPick,
+  onCancel,
+}: {
+  open: boolean;
+  onPick: (r: Role) => void;
+  onCancel: () => void;
+}) {
+  const first = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (open) first.current?.focus();
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="promo-title"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4"
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+    >
+      <div className={`${card} flex flex-col gap-4 p-6`}>
+        <h2 id="promo-title" className="font-display text-xl font-bold">
+          Promote your pawn
+        </h2>
+        <p className="text-sm text-muted">
+          It keeps its Pokémon and type. Applies only if the pawn lands.
+        </p>
+        <div className="grid grid-cols-4 gap-3">
+          {PROMO.map((r, i) => (
+            <button
+              key={r}
+              ref={i === 0 ? first : undefined}
+              type="button"
+              onClick={() => onPick(r)}
+              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-line bg-card-2 hover:border-accent"
+            >
+              <span className="text-3xl">{ROLE_GLYPH[r]}</span>
+              <span className="text-xs font-semibold">{ROLE_NAME[r]}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={onCancel} className="self-end text-sm text-muted underline">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function GameOverDialog({
+  game,
+  stats,
+  onNewGame,
+  onClose,
+}: {
+  game: GameState;
+  stats: Record<Color, Stats>;
+  onNewGame: () => void;
+  onClose: () => void;
+}) {
+  if (game.status.state === "active") return null;
+  const s = game.status;
+  const title = s.state === "won" ? `${s.winner === "white" ? "White" : "Black"} wins!` : "Draw";
+  const reason =
+    s.state === "won"
+      ? {
+          kingCaptured: "King captured",
+          resignation: "Resignation",
+          timeout: "Timeout",
+          abandonment: "Abandonment",
+        }[s.reason]
+      : {
+          stalemate: "Stalemate",
+          agreement: "Agreed draw",
+          halfMoveLimit: "100 half-move rule",
+          doubleKnockout: "Double knockout",
+        }[s.reason];
+  const rows: [string, keyof Stats][] = [
+    ["Captures", "captures"],
+    ["Super-effective hits", "superEffective"],
+    ["Critical hits", "crits"],
+    ["Dodges", "dodges"],
+  ];
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="over-title"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4"
+    >
+      <div className={`${card} flex w-full max-w-md flex-col gap-5 p-6`}>
+        <div>
+          <h2 id="over-title" className="font-display text-3xl font-bold">
+            {title}
+          </h2>
+          <p className="text-sm text-muted">{reason}</p>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wider text-muted">
+              <th className="py-1 font-semibold">Stat</th>
+              <th className="py-1 text-right font-semibold">White</th>
+              <th className="py-1 text-right font-semibold">Black</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([label, key]) => (
+              <tr key={key} className="border-t border-line">
+                <td className="py-1.5">{label}</td>
+                <td className="py-1.5 text-right tabular-nums">{stats.white[key]}</td>
+                <td className="py-1.5 text-right tabular-nums">{stats.black[key]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onNewGame}
+            className="h-12 flex-1 rounded-xl bg-accent font-semibold text-ink-dark"
+          >
+            New game
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-12 flex-1 rounded-xl border border-line bg-card-2 font-semibold"
+          >
+            View board
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

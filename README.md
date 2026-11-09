@@ -22,13 +22,16 @@ Requires Node 22 and pnpm 10.
 
 ```sh
 pnpm install
-pnpm test        # engine unit tests
+pnpm dev         # play locally at http://localhost:5173 (two players, one screen)
+pnpm test        # engine and roster tests
 pnpm typecheck
 pnpm lint
 pnpm build
 ```
 
+Add `?seed=12345` to the URL to replay the same Pokémon assignment and dice rolls.
+
 ## Status
 
-Milestone 2 (rules engine) in progress. See
+Milestone 3 (local playable prototype) in progress. See
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
