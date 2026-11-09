@@ -14,8 +14,8 @@ project for playing with friends.
   design. For now the engine runs in the browser; M4 moves battle resolution to the server.
 - Piece moves are animated from engine events (`apps/web/src/game/motion.ts`); the board only
   plays what the events report. The board is an ARIA grid with keyboard play
-  (`apps/web/src/game/boardNav.ts`). Next up for M3: collapsible battle log on mobile; sound
-  later in M5.
+  (`apps/web/src/game/boardNav.ts`). The battle log collapses on phones. All listed M3 polish
+  items are done; sound comes in M5.
 - Live progress: `docs/IMPLEMENTATION_PLAN.md`. Update it in every PR that finishes an item.
 
 ## Source of truth
