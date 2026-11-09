@@ -12,7 +12,8 @@ project for playing with friends.
   promotion, wins and draws. Perft matches standard chess to depth 3.
 - `apps/web` is a playable hot-seat game (two players, one screen) built from the Game Screen v1
   design. For now the engine runs in the browser; M4 moves battle resolution to the server.
-- Next up for M3: smooth piece-move animations, arrow-key navigation on the board (see the
+- Piece moves are animated from engine events (`apps/web/src/game/motion.ts`); the board only
+  plays what the events report. Next up for M3: arrow-key navigation on the board (see the
   design review rules below), collapsible battle log on mobile, sound later in M5.
 - Live progress: `docs/IMPLEMENTATION_PLAN.md`. Update it in every PR that finishes an item.
 

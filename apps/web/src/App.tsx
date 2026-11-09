@@ -76,6 +76,7 @@ export function App() {
               moves={g.moves}
               lastMove={g.lastMove}
               hitSquare={g.hitSquare}
+              motion={g.motion}
               flipped={flipped}
               size={size}
               onSquare={g.clickSquare}
