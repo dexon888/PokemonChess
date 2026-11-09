@@ -4,3 +4,5 @@ export * from "./rng.js";
 export * from "./battle.js";
 export * from "./board.js";
 export * from "./moves.js";
+export * from "./game.js";
+export * from "./assign.js";
