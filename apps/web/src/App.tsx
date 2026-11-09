@@ -80,6 +80,7 @@ export function App() {
               flipped={flipped}
               size={size}
               onSquare={g.clickSquare}
+              onCancel={g.clearSelection}
             />
             <OutcomeBanner banner={banner} onDone={clearBanner} />
           </div>
