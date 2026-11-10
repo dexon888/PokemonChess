@@ -29,3 +29,19 @@ Milestone 0 (planning) was approved on 2026-11-08. M1 and M2 run in parallel.
 - [ ] M3 polish: collapsible battle log on mobile
 
 Design files: the Game Screen v1 canvas on claude.ai.
+
+## M4 breakdown
+
+One small PR each, in order:
+
+- [x] `packages/protocol`: Zod schemas for every client message, shared server message types,
+      time controls (R11) and the reconnect grace (R12)
+- [ ] `apps/server` with `MatchRoom`: Colyseus room running the engine authoritatively with a
+      seeded `Rng`, an event log, events + snapshot broadcast; untimed; integration tests
+- [ ] Clocks (R11): increments on every action including bonus actions, timeout loses
+- [ ] Reconnection (R12, R13): nickname, reconnect token, 60 s grace with the clock running,
+      claim victory after it
+- [ ] Private rooms: room code and invite link, time-control choice, no third player
+- [ ] Matchmaking: `QueueRoom` at 10+5 with cancel
+- [ ] Web client: home, matchmaking and lobby screens; online game driven by server events
+- [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
