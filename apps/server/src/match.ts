@@ -11,14 +11,16 @@ import {
   type Position,
   type Rng,
 } from "@pokemon-chess/engine";
-import type {
-  ClientMessage,
-  ErrorCode,
-  MatchSnapshot,
-  ServerMessages,
-  TimeControlId,
+import {
+  TIME_CONTROLS,
+  type ClientMessage,
+  type ErrorCode,
+  type MatchSnapshot,
+  type ServerMessages,
+  type TimeControlId,
 } from "@pokemon-chess/protocol";
 import { ROSTER_V1 } from "@pokemon-chess/roster";
+import { ChessClock } from "./clock.js";
 
 /** A message for one session. Snapshots differ per player (`you`), so nothing is broadcast. */
 export type Outbound = {
@@ -62,8 +64,10 @@ export class Match {
   readonly log: LogRecord[] = [];
   private readonly rng: Rng;
   private readonly setup: MatchOptions["setup"];
-  private readonly now: () => number;
+  /** Current time in ms. Public so tests can move time forward. */
+  now: () => number;
   private readonly seats: Seat[] = [];
+  private readonly clock: ChessClock | null;
   private game: GameState | null = null;
   private drawOfferFrom: Color | null = null;
 
@@ -73,6 +77,20 @@ export class Match {
     this.rng = opts.rng;
     this.setup = opts.setup;
     this.now = opts.now ?? Date.now;
+    const tc = TIME_CONTROLS[opts.timeControl];
+    this.clock = tc ? new ChessClock(tc.initialMs, tc.incrementMs) : null;
+  }
+
+  /** Milliseconds until the side to move runs out of time; null when untimed or not running. */
+  msUntilFlag(): number | null {
+    return this.clock?.msUntilFlag(this.now()) ?? null;
+  }
+
+  /** Ends the match on time if the side to move has run out (R11). The room calls this on a timer. */
+  tick(): Outbound[] {
+    const flagged = this.clock?.flagged(this.now());
+    if (!flagged || this.game?.status.state !== "active") return [];
+    return this.apply(null, flagged, { type: "timeout", color: flagged });
   }
 
   get started(): boolean {
@@ -110,9 +128,14 @@ export class Match {
     if (!seat?.color)
       return this.error(sessionId, "notAPlayer", "You are not playing in this match");
     const color = seat.color;
+    // A message that arrives after the deadline loses the race: the flag falls first.
+    const timedOut = this.tick();
     const game = this.game;
     if (!game || game.status.state !== "active") {
-      return this.error(sessionId, "matchNotActive", "The match is not in progress");
+      return [
+        ...timedOut,
+        ...this.error(sessionId, "matchNotActive", "The match is not in progress"),
+      ];
     }
 
     switch (msg.type) {
@@ -165,7 +188,7 @@ export class Match {
         })),
       you: this.seat(sessionId)?.color ?? null,
       timeControl: this.timeControl,
-      clocks: null,
+      clocks: this.clock?.state(this.now()) ?? null,
       drawOfferFrom: this.drawOfferFrom,
       rematchRequestedBy: [],
       seq: this.log.length,
@@ -179,21 +202,27 @@ export class Match {
     second.color = opponent(firstColor);
     const position = this.setup?.position ?? createRandomStartingPosition(ROSTER_V1, this.rng);
     this.game = newGame(position);
+    // White's clock runs from the moment both players are seated.
+    this.clock?.start(this.game.turn, this.now());
     return this.snapshots();
   }
 
-  private apply(sessionId: string, by: Color, action: Action): Outbound[] {
+  /** Applies one engine action. `sessionId` is null for server-initiated actions (timeouts). */
+  private apply(sessionId: string | null, by: Color, action: Action): Outbound[] {
     if (!this.game) return [];
     let result;
     try {
       result = applyAction(this.game, action, this.rng);
     } catch (err) {
-      if (err instanceof IllegalActionError) {
+      if (err instanceof IllegalActionError && sessionId !== null) {
         return this.error(sessionId, "illegalAction", err.message);
       }
       throw err;
     }
     this.game = result.state;
+    const now = this.now();
+    if (this.game.status.state !== "active") this.clock?.stop(now);
+    else if (action.type === "move") this.clock?.press(by, this.game.turn, now);
     // Any action ends a pending draw offer; agreeing to it is itself an action.
     this.drawOfferFrom = null;
     const seq = this.log.length + 1;

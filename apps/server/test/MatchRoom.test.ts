@@ -53,8 +53,8 @@ beforeEach(async () => {
   await colyseus.cleanup();
 });
 
-async function twoPlayers() {
-  const room = (await colyseus.createRoom("match", {})) as MatchRoom;
+async function twoPlayers(createOptions: Record<string, unknown> = {}) {
+  const room = (await colyseus.createRoom("match", createOptions)) as MatchRoom;
   const a = await colyseus.connectTo(room, { nickname: "Ash" });
   const aIn = inbox(a);
   const b = await colyseus.connectTo(room, { nickname: "Gary" });
@@ -138,5 +138,43 @@ describe("MatchRoom", () => {
     await a.leave();
     const snap: MatchSnapshot = await bIn.next("snapshot");
     expect(snap.players.find((p) => p.color === aSnap.you)?.connected).toBe(false);
+  });
+});
+
+describe("MatchRoom clocks (R11)", () => {
+  it("defaults to the 10+5 matchmaking control with White's clock running", async () => {
+    const { aSnap } = await twoPlayers();
+    expect(aSnap.timeControl).toBe("10+5");
+    expect(aSnap.clocks?.running).toBe("white");
+    expect(aSnap.clocks?.white).toBeLessThanOrEqual(600_000);
+    expect(aSnap.clocks?.white).toBeGreaterThan(590_000);
+    expect(aSnap.clocks?.black).toBe(600_000);
+  });
+
+  it("honours an untimed room", async () => {
+    const { aSnap } = await twoPlayers({ timeControl: "untimed" });
+    expect(aSnap.timeControl).toBe("untimed");
+    expect(aSnap.clocks).toBeNull();
+  });
+
+  it("refuses an unknown time control", async () => {
+    await expect(colyseus.createRoom("match", { timeControl: "1+0" })).rejects.toThrow();
+  });
+
+  it("the room's timer ends the match on time without any client message", async () => {
+    const { room, white, black } = await twoPlayers({ timeControl: "5+3" });
+    // Jump the match's clock to 50 ms before White's flag, then make the room re-arm its timer
+    // (any delivery does; a draw offer changes nothing else).
+    const shift = 300_000 - 50;
+    const realNow = room.match.now;
+    room.match.now = () => realNow() + shift;
+    black.c.send("offerDraw");
+    await white.in.next("snapshot");
+
+    const [w, b] = await Promise.all([white.in.next("events"), black.in.next("events")]);
+    expect(w.events).toEqual([
+      { type: "gameOver", status: { state: "won", winner: "black", reason: "timeout" } },
+    ]);
+    expect(b.snapshot.clocks).toMatchObject({ white: 0, running: null });
   });
 });
