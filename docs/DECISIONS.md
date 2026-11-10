@@ -5,6 +5,7 @@ Approved changes and clarifications to the PRD. Newest first. Gameplay rules liv
 
 | ID  | Date       | Decision                                                                                                            | Reason                                                                                   |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| R17 | 2026-11-09 | White's clock starts when both players are seated; it stops when the game ends                                      | R11 had no start rule; no lobby step exists yet to delay it                              |
 | D6  | 2026-11-09 | Server → client sync uses plain JSON messages (events + full snapshot), not Colyseus schema state                   | The engine's GameState is already JSON; events let clients animate exactly what happened |
 | D5  | 2026-11-08 | Hosting: one Node service (server + built client) on Railway or Fly.io                                              | WebSockets need a long-lived process; Render's free tier sleeps                          |
 | D4  | 2026-11-08 | No database at MVP; matches live in memory                                                                          | No accounts or history yet. Add Redis only for more than one server                      |
