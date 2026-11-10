@@ -48,3 +48,18 @@ One small PR each, in order:
 - [ ] Matchmaking: `QueueRoom` at 10+5 with cancel
 - [ ] Web client: home, matchmaking and lobby screens; online game driven by server events
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
+
+## Post-MVP ideas
+
+Not scheduled. Anything that changes gameplay starts as a written proposal and needs approval
+before it touches `GAME_RULES.md`.
+
+- **Team draft mode** (owner idea, 2026-11-09): as an alternative to random assignment, each
+  player picks a team of 6 Pokémon and assigns one to each piece type (king, queen, rook, bishop,
+  knight, pawn). The engine already takes assignment as a function (`createStartingPosition`),
+  so this is mostly a pre-match draft phase plus UI. Open questions for the proposal:
+  - Do all eight pawns share one Pokémon, and do both rooks, bishops and knights share theirs?
+  - For a dual-type Pokémon, does the player choose the active type or is it still 50/50?
+  - Can both players pick the same Pokémon? Is the pick simultaneous and hidden, or in turns?
+  - Is there a time limit for the draft, and how does it interact with clocks (R11, R17)?
+  - Is it a private-room option, a separate matchmaking queue, or both?
