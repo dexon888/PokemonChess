@@ -1,0 +1,34 @@
+{
+  "name": "@pokemon-chess/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authoritative Colyseus game server for Pokémon Chess.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --conditions=source src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@colyseus/core": "~0.18.27",
+    "@colyseus/schema": "^5.0.45",
+    "@colyseus/tools": "~0.18.11",
+    "@colyseus/ws-transport": "~0.18.4",
+    "@pokemon-chess/engine": "workspace:*",
+    "@pokemon-chess/protocol": "workspace:*",
+    "@pokemon-chess/roster": "workspace:*",
+    "express": "^5.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@colyseus/playground": "~0.18.6",
+    "@colyseus/sdk": "~0.18.9",
+    "@colyseus/testing": "~0.18.6",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "vitest": "^3.2.7"
+  }
+}
