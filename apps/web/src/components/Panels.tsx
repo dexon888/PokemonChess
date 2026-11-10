@@ -9,16 +9,10 @@ import {
   type Role,
   type Square,
 } from "@pokemon-chess/engine";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Banner, LogEntry, LogTag, Stats } from "../game/useLocalGame";
-import {
-  EFFECT_RESULT,
-  EFFECT_STYLE,
-  ROLE_GLYPH,
-  ROLE_NAME,
-  TYPE_COLOR,
-  typeTextColor,
-} from "../game/theme";
+import { EFFECT_RESULT, EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeTextColor } from "../game/theme";
+import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
 
 const card = "rounded-2xl border border-line bg-card";
@@ -129,8 +123,9 @@ export function SelectedPanel({
           <h2 className="font-display text-2xl font-bold tracking-tight">{piece.species}</h2>
           <div className="flex flex-wrap items-center gap-1.5">
             <TypeChip type={piece.type} />
-            <span className="rounded-md bg-[#F4F6FF] px-2 py-0.5 text-xs font-semibold text-ink-dark">
-              {ROLE_GLYPH[piece.role]} {ROLE_NAME[piece.role]}
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-card-2 py-0.5 pl-1 pr-2 text-xs font-semibold">
+              <PieceIcon role={piece.role} color={piece.color} size={16} />
+              {ROLE_NAME[piece.role]}
             </span>
             <span className="rounded-md border border-line bg-card-2 px-2 py-0.5 text-xs font-semibold">
               {squareName(selected)}
@@ -188,32 +183,93 @@ const TAG_STYLE: Record<LogTag, [string, string]> = {
   END: ["#6EA8FE", "#0B1020"],
 };
 
+const sideName = (e: LogEntry) => (e.color === "white" ? "White" : "Black");
+const spoken = (e: LogEntry) => (e.color ? `${sideName(e)}: ${e.text}` : e.text);
+
+function LogLine({ e }: { e: LogEntry }) {
+  return (
+    <>
+      <span
+        className="w-[52px] shrink-0 rounded-md py-0.5 text-center text-[11px] font-bold tracking-wide"
+        style={{ background: TAG_STYLE[e.tag][0], color: TAG_STYLE[e.tag][1] }}
+      >
+        {e.tag}
+      </span>
+      <span className={`text-[13px] leading-snug ${e.tag === "MOVE" ? "text-muted" : ""}`}>
+        {e.color && <span className="font-semibold">{sideName(e)}: </span>}
+        {e.text}
+      </span>
+    </>
+  );
+}
+
+/**
+ * Newest-first log of every action. Below the md breakpoint (where this panel stacks under the
+ * board) it collapses to the newest entry with a "Show all" toggle, so the controls under it stay
+ * close to the board. Announcements go through a separate live region that is never hidden.
+ */
 export function BattleLog({ log }: { log: LogEntry[] }) {
+  const [open, setOpen] = useState(false);
+  const latest = log[0];
+  const canToggle = log.length > 1;
+
+  // Announce only the entries one action added (a battle can add several), oldest first.
+  const seen = useRef(0);
+  const [announcement, setAnnouncement] = useState("");
+  useEffect(() => {
+    if (!latest) {
+      seen.current = 0;
+      setAnnouncement("");
+      return;
+    }
+    const fresh = log.filter((e) => e.id > seen.current);
+    seen.current = latest.id;
+    if (fresh.length > 0) setAnnouncement(fresh.reverse().map(spoken).join(" "));
+  }, [log, latest]);
+
   return (
     <section aria-label="Battle log" className={`${card} flex min-h-0 flex-col gap-3 p-5`}>
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h3 className="font-display text-[17px] font-semibold">Battle log</h3>
-        <span className="text-xs text-muted">newest first</span>
+        <span className="hidden text-xs text-muted md:inline">newest first</span>
+        {canToggle && (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="battle-log-entries"
+            onClick={() => setOpen((o) => !o)}
+            className="rounded-lg border border-line bg-card-2 px-3 py-1.5 text-xs font-semibold md:hidden"
+          >
+            {open ? "Show less" : `Show all (${log.length})`}
+          </button>
+        )}
       </div>
-      <ol className="flex max-h-72 flex-col gap-2.5 overflow-y-auto pr-1" aria-live="polite">
+
+      {!open && (
+        <div className="flex items-start gap-2.5 md:hidden">
+          {latest ? (
+            <LogLine e={latest} />
+          ) : (
+            <span className="text-sm text-muted">White moves first. Good luck!</span>
+          )}
+        </div>
+      )}
+
+      <ol
+        id="battle-log-entries"
+        className={`${open ? "flex" : "hidden"} max-h-72 flex-col gap-2.5 overflow-y-auto pr-1 md:flex`}
+      >
         {log.length === 0 && <li className="text-sm text-muted">White moves first. Good luck!</li>}
         {log.map((e) => (
           <li key={e.id} className="flex items-start gap-2.5">
-            <span
-              className="w-[52px] shrink-0 rounded-md py-0.5 text-center text-[11px] font-bold tracking-wide"
-              style={{ background: TAG_STYLE[e.tag][0], color: TAG_STYLE[e.tag][1] }}
-            >
-              {e.tag}
-            </span>
-            <span className={`text-[13px] leading-snug ${e.tag === "MOVE" ? "text-muted" : ""}`}>
-              {e.color && (
-                <span className="font-semibold">{e.color === "white" ? "White" : "Black"}: </span>
-              )}
-              {e.text}
-            </span>
+            <LogLine e={e} />
           </li>
         ))}
       </ol>
+
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </p>
     </section>
   );
 }
@@ -300,7 +356,7 @@ export function PromotionDialog({
               onClick={() => onPick(r)}
               className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-line bg-card-2 hover:border-accent"
             >
-              <span className="text-3xl">{ROLE_GLYPH[r]}</span>
+              <PieceIcon role={r} color="white" size={36} />
               <span className="text-xs font-semibold">{ROLE_NAME[r]}</span>
             </button>
           ))}

@@ -28,16 +28,6 @@ export const typeTextColor = (t: PokemonType) => (LIGHT_TEXT.has(t) ? "#FFFFFF" 
 
 export const typeCode = (t: PokemonType) => t.slice(0, 3).toUpperCase();
 
-/** Glyphs with U+FE0E so they never render as emoji. */
-export const ROLE_GLYPH: Record<Role, string> = {
-  king: "♚︎",
-  queen: "♛︎",
-  rook: "♜︎",
-  bishop: "♝︎",
-  knight: "♞︎",
-  pawn: "♟︎",
-};
-
 export const ROLE_NAME: Record<Role, string> = {
   king: "King",
   queen: "Queen",
