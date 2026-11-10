@@ -5,7 +5,11 @@ which runs the engine with a seeded RNG, records every action (rolls included) i
 and sends each player an `events` message (events + their own snapshot) after every action.
 Messages follow `@pokemon-chess/protocol`; state sync is plain JSON, not Colyseus schema (D6).
 
-Not yet: clocks, reconnect grace, private room codes, matchmaking, rematch (later M4 steps).
+Clocks (R11, R17): create the room with `{ "timeControl": "5+3" }` (also `10+5`, `30+0`,
+`untimed`; default `10+5`). Snapshots carry `clocks`; the room arms a timer for the next possible
+flag, and any message arriving after the deadline loses on time first.
+
+Not yet: reconnect grace, private room codes, matchmaking, rematch (later M4 steps).
 
 ## Run it
 
