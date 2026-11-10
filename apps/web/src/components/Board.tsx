@@ -9,16 +9,11 @@ import {
   type Square,
   type BattleOutcome,
 } from "@pokemon-chess/engine";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { nextFocus, screenCell, squareAt } from "../game/boardNav";
 import { FADE_MS, LUNGE_MS, SLIDE_MS, type Motion } from "../game/motion";
-import {
-  EFFECT_STYLE,
-  ROLE_GLYPH,
-  ROLE_NAME,
-  TYPE_COLOR,
-  typeCode,
-  typeTextColor,
-} from "../game/theme";
+import { EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeCode, typeTextColor } from "../game/theme";
+import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
 
 interface Props {
@@ -31,6 +26,8 @@ interface Props {
   flipped: boolean;
   size: number;
   onSquare: (sq: Square) => void;
+  /** Esc on the board: drop the current selection. */
+  onCancel: () => void;
 }
 
 const FILES = "abcdefgh";
@@ -45,6 +42,7 @@ export function Board({
   flipped,
   size,
   onSquare,
+  onCancel,
 }: Props) {
   const q = size / 8;
   const boardRef = useRef<HTMLDivElement>(null);
@@ -53,120 +51,53 @@ export function Board({
   const ghosts = animate ? motion.ghosts : [];
   const hitDelay = animate ? motion.impactDelay : 0;
   const attacker = selected !== null ? game.board[selected] : null;
-  const order: Square[] = [];
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const rank = flipped ? row : 7 - row;
-      const file = flipped ? 7 - col : col;
-      order.push(rank * 8 + file);
+  const rows = [0, 1, 2, 3, 4, 5, 6, 7].map((row) =>
+    [0, 1, 2, 3, 4, 5, 6, 7].map((col) => squareAt(row, col, flipped)),
+  );
+
+  // Roving focus (ARIA grid): the board is one Tab stop and arrow keys move between squares.
+  const [focusSq, setFocusSq] = useState<Square>(() => {
+    const king = game.board.findIndex((p) => p?.role === "king" && p.color === game.turn);
+    return king >= 0 ? king : 0;
+  });
+  const buttons = useRef(new Map<Square, HTMLButtonElement>());
+  const onKeyDown = (e: React.KeyboardEvent, sq: Square) => {
+    if (e.key === "Escape") {
+      if (selected !== null) {
+        e.preventDefault();
+        onCancel();
+      }
+      return;
     }
-  }
+    const next = nextFocus(sq, e.key, flipped, e.ctrlKey || e.metaKey);
+    if (next === null) return;
+    e.preventDefault();
+    setFocusSq(next);
+    buttons.current.get(next)?.focus();
+  };
 
   return (
     <div
       ref={boardRef}
       role="grid"
       aria-label="Chessboard"
+      aria-describedby="board-keys"
       className="board relative grid overflow-hidden rounded-xl"
       style={{ width: size, height: size, gridTemplateColumns: `repeat(8, ${q}px)` }}
     >
-      {order.map((sq, i) => {
-        const piece = game.board[sq];
-        const dark = (fileOf(sq) + rankOf(sq)) % 2 === 0;
-        const move = moves.find((m) => m.to === sq);
-        const defenderSq = move?.defender;
-        const defender = defenderSq !== undefined ? game.board[defenderSq] : null;
-        const eff = attacker && defender ? effectiveness(attacker.type, defender.type) : null;
-        const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
-        const showRank = i % 8 === 0;
-        const showFile = i >= 56;
-        const hit = hitSquare?.sq === sq ? hitSquare : null;
-
-        const label = [
-          squareName(sq),
-          piece
-            ? `${piece.color} ${ROLE_NAME[piece.role]}, ${piece.species}, ${piece.type}`
-            : "empty",
-          eff !== null ? `attack ${EFFECT_STYLE[eff].label}` : move ? "legal move" : "",
-        ]
-          .filter(Boolean)
-          .join(", ");
-
-        return (
-          <button
-            key={sq}
-            type="button"
-            aria-label={label}
-            onClick={() => onSquare(sq)}
-            className={`square relative ${dark ? "sq-dark" : "sq-light"} ${isLast ? "sq-last" : ""} ${
-              selected === sq ? "sq-selected" : ""
-            }`}
-            style={{ width: q, height: q }}
-          >
-            {showRank && (
-              <span
-                className="coord"
-                style={{ left: q * 0.05, top: q * 0.02, fontSize: Math.max(9, q * 0.13) }}
-              >
-                {rankOf(sq) + 1}
-              </span>
-            )}
-            {showFile && (
-              <span
-                className="coord"
-                style={{ right: q * 0.06, bottom: q * 0.02, fontSize: Math.max(9, q * 0.13) }}
-              >
-                {FILES[fileOf(sq)]}
-              </span>
-            )}
-
-            {move && !defender && (
-              <span className="move-dot" style={{ width: q * 0.22, height: q * 0.22 }} />
-            )}
-
-            {piece && (
-              <PieceView
-                key={piece.id}
-                piece={piece}
-                q={q}
-                hit={hit && !removesDefender(hit.kind) ? hit : null}
-                hitDelay={hitDelay}
-              />
-            )}
-
-            {eff !== null && (
-              <>
-                <span
-                  className="capture-ring"
-                  style={{
-                    inset: q * 0.06,
-                    borderColor: EFFECT_STYLE[eff].bg,
-                    borderStyle: eff === 0 ? "dashed" : "solid",
-                  }}
-                />
-                <span
-                  className="capture-badge"
-                  style={{
-                    right: q * 0.03,
-                    bottom: q * 0.03,
-                    minWidth: q * 0.34,
-                    background: EFFECT_STYLE[eff].bg,
-                    color: EFFECT_STYLE[eff].fg,
-                    fontSize: Math.max(10, q * 0.17),
-                  }}
-                >
-                  {EFFECT_STYLE[eff].label}
-                </span>
-              </>
-            )}
-          </button>
-        );
-      })}
+      <p id="board-keys" className="sr-only">
+        Arrow keys move between squares. Enter selects a piece or makes a move. Escape cancels.
+      </p>
+      {rows.map((rowSquares, row) => (
+        <div key={row} role="row" style={{ display: "contents" }}>
+          {rowSquares.map((sq, col) => renderSquare(sq, row * 8 + col))}
+        </div>
+      ))}
 
       {ghosts.length > 0 && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">
           {ghosts.map((g, i) => {
-            const { col, row } = cell(g.square, flipped);
+            const { col, row } = screenCell(g.square, flipped);
             const hit = !g.slideFrom && hitSquare?.sq === g.square ? hitSquare : null;
             return (
               <div
@@ -183,14 +114,105 @@ export function Board({
       )}
     </div>
   );
-}
 
-/** Screen column and row of a square (0,0 is the top-left cell as displayed). */
-function cell(sq: Square, flipped: boolean) {
-  return {
-    col: flipped ? 7 - fileOf(sq) : fileOf(sq),
-    row: flipped ? rankOf(sq) : 7 - rankOf(sq),
-  };
+  function renderSquare(sq: Square, i: number) {
+    const piece = game.board[sq];
+    const dark = (fileOf(sq) + rankOf(sq)) % 2 === 0;
+    const move = moves.find((m) => m.to === sq);
+    const defenderSq = move?.defender;
+    const defender = defenderSq !== undefined ? game.board[defenderSq] : null;
+    const eff = attacker && defender ? effectiveness(attacker.type, defender.type) : null;
+    const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
+    const showRank = i % 8 === 0;
+    const showFile = i >= 56;
+    const hit = hitSquare?.sq === sq ? hitSquare : null;
+
+    const label = [
+      squareName(sq),
+      piece ? `${piece.color} ${ROLE_NAME[piece.role]}, ${piece.species}, ${piece.type}` : "empty",
+      eff !== null ? `attack ${EFFECT_STYLE[eff].label}` : move ? "legal move" : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return (
+      <div key={sq} role="gridcell" aria-selected={selected === sq}>
+        <button
+          ref={(el) => {
+            if (el) buttons.current.set(sq, el);
+            else buttons.current.delete(sq);
+          }}
+          type="button"
+          tabIndex={sq === focusSq ? 0 : -1}
+          aria-label={label}
+          onClick={() => onSquare(sq)}
+          onFocus={() => setFocusSq(sq)}
+          onKeyDown={(e) => onKeyDown(e, sq)}
+          className={`square relative ${dark ? "sq-dark" : "sq-light"} ${isLast ? "sq-last" : ""} ${
+            selected === sq ? "sq-selected" : ""
+          }`}
+          style={{ width: q, height: q }}
+        >
+          {showRank && (
+            <span
+              className="coord"
+              style={{ left: q * 0.05, top: q * 0.02, fontSize: Math.max(9, q * 0.13) }}
+            >
+              {rankOf(sq) + 1}
+            </span>
+          )}
+          {showFile && (
+            <span
+              className="coord"
+              style={{ right: q * 0.06, bottom: q * 0.02, fontSize: Math.max(9, q * 0.13) }}
+            >
+              {FILES[fileOf(sq)]}
+            </span>
+          )}
+
+          {move && !defender && (
+            <span className="move-dot" style={{ width: q * 0.22, height: q * 0.22 }} />
+          )}
+
+          {piece && (
+            <PieceView
+              key={piece.id}
+              piece={piece}
+              q={q}
+              hit={hit && !removesDefender(hit.kind) ? hit : null}
+              hitDelay={hitDelay}
+            />
+          )}
+
+          {eff !== null && (
+            <>
+              <span
+                className="capture-ring"
+                style={{
+                  inset: q * 0.06,
+                  borderColor: EFFECT_STYLE[eff].bg,
+                  borderStyle: eff === 0 ? "dashed" : "solid",
+                }}
+              />
+              <span
+                className="capture-badge"
+                style={{
+                  right: q * 0.03,
+                  bottom: q * 0.03,
+                  minWidth: q * 0.34,
+                  background: EFFECT_STYLE[eff].bg,
+                  color: EFFECT_STYLE[eff].fg,
+                  fontSize: Math.max(10, q * 0.17),
+                }}
+              >
+                {EFFECT_STYLE[eff].label}
+              </span>
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
 }
 
 const removesDefender = (kind: BattleOutcome) =>
@@ -215,8 +237,8 @@ function useBoardMotion(
     if (!motion || !root || prefersReducedMotion()) return;
     const animations: Animation[] = [];
     const offset = (from: Square, to: Square) => {
-      const a = cell(from, flipped);
-      const b = cell(to, flipped);
+      const a = screenCell(from, flipped);
+      const b = screenCell(to, flipped);
       return { dx: (a.col - b.col) * q, dy: (a.row - b.row) * q };
     };
     const run = (node: Element | null, frames: Keyframe[], opts: KeyframeAnimationOptions) => {
@@ -332,18 +354,13 @@ function PieceView({
             flip={piece.color === "black"}
           />
         </span>
-        <span
-          className={`role-badge ${piece.color === "white" ? "role-white" : "role-black"}`}
-          style={{
-            left: q * 0.04,
-            bottom: q * 0.04,
-            width: q * 0.3,
-            height: q * 0.3,
-            fontSize: q * 0.22,
-          }}
-        >
-          {ROLE_GLYPH[piece.role]}
-        </span>
+        <PieceIcon
+          role={piece.role}
+          color={piece.color}
+          size={Math.max(16, q * 0.42)}
+          className="piece-icon"
+          style={{ left: q * 0.01, bottom: q * 0.01 }}
+        />
         <span
           className="type-tag"
           style={{
