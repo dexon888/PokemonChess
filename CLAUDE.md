@@ -6,8 +6,11 @@ project for playing with friends.
 
 ## Where things stand
 
-- Milestones 0 (planning) and 2 (rules engine) are done. **Milestone 3 (local playable
-  prototype) is in progress.** Online multiplayer (Colyseus) is Milestone 4.
+- Milestones 0 (planning), 2 (rules engine) and 3 (local prototype) are done. **Milestone 4
+  (online multiplayer, Colyseus) is in progress**; its step-by-step breakdown is at the end of
+  `docs/IMPLEMENTATION_PLAN.md`.
+- `apps/server` runs one authoritative `MatchRoom` per game (untimed for now). Clocks,
+  reconnection, private rooms, matchmaking and the online web client are the next M4 steps.
 - The engine plays a full game: legal moves, battles, bonus turns, castling, en passant,
   promotion, wins and draws. Perft matches standard chess to depth 3.
 - `apps/web` is a playable hot-seat game (two players, one screen) built from the Game Screen v1
@@ -21,7 +24,7 @@ project for playing with friends.
 ## Source of truth
 
 - Rules: `docs/GAME_RULES.md` (wins over `docs/PRD.md`). Decision log: `docs/DECISIONS.md`.
-  All 16 rule decisions (R1–R16) and the stack decisions (D1–D5) are approved.
+  All 16 rule decisions (R1–R16) and the stack decisions (D1–D6) are approved.
 - Architecture: `docs/ARCHITECTURE.md`. Roadmap and progress: `docs/IMPLEMENTATION_PLAN.md`.
 - Never change gameplay silently. Propose the change, get approval, then update
   `GAME_RULES.md` and `DECISIONS.md` in the same PR.
@@ -46,11 +49,16 @@ project for playing with friends.
 - `packages/engine`: pure TypeScript rules. No runtime dependencies, no DOM, no Node APIs.
 - `packages/roster`: generated roster v1 (1,083 entries) + sprite URLs. Regenerate with
   `pnpm --filter @pokemon-chess/roster generate`; never hand-edit `roster.v1.ts`.
-- `apps/web`: Vite + React + Tailwind client. `apps/server` (Colyseus) arrives in M4.
+- `packages/protocol`: Zod schemas for every client message, shared server message types,
+  time controls. Both apps import it.
+- `apps/web`: Vite + React + Tailwind client.
+- `apps/server`: Colyseus 0.18 server. Game logic lives in the transport-free `Match` class
+  (`src/match.ts`); `MatchRoom` only validates and delivers. See `apps/server/README.md`.
 
 ## Commands (pnpm 10, Node 22+)
 
-- `pnpm dev` (http://localhost:5173, add `?seed=123` to replay a game), `pnpm test`,
+- `pnpm dev` (http://localhost:5173, add `?seed=123` to replay a game), `pnpm dev:server`
+  (ws://localhost:2567, playground at http://localhost:2567/playground), `pnpm test`,
   `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm format`
 - The owner develops on Windows; keep scripts cross-platform (no bash-only commands in
   package.json).

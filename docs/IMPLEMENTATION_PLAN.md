@@ -39,7 +39,7 @@ One small PR each, in order:
 
 - [x] `packages/protocol`: Zod schemas for every client message, shared server message types,
       time controls (R11) and the reconnect grace (R12)
-- [ ] `apps/server` with `MatchRoom`: Colyseus room running the engine authoritatively with a
+- [x] `apps/server` with `MatchRoom`: Colyseus room running the engine authoritatively with a
       seeded `Rng`, an event log, events + snapshot broadcast; untimed; integration tests
 - [ ] Clocks (R11): increments on every action including bonus actions, timeout loses
 - [ ] Reconnection (R12, R13): nickname, reconnect token, 60 s grace with the clock running,
