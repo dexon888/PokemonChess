@@ -70,6 +70,19 @@ importers:
         specifier: ^3.2.0
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)
 
+  packages/protocol:
+    dependencies:
+      '@pokemon-chess/engine':
+        specifier: workspace:*
+        version: link:../engine
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+    devDependencies:
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)
+
   packages/roster:
     dependencies:
       '@pokemon-chess/engine':
@@ -1467,6 +1480,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
+
 snapshots:
 
   '@babel/code-frame@7.29.7':
@@ -2732,3 +2748,5 @@ snapshots:
   yallist@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.6.7: {}
