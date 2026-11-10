@@ -9,8 +9,8 @@ project for playing with friends.
 - Milestones 0 (planning), 2 (rules engine) and 3 (local prototype) are done. **Milestone 4
   (online multiplayer, Colyseus) is in progress**; its step-by-step breakdown is at the end of
   `docs/IMPLEMENTATION_PLAN.md`.
-- `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17). Next:
-  reconnection, private rooms, matchmaking and the online web client.
+- `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17) and reconnection (R12, R13, R18). Next:
+  private rooms, matchmaking and the online web client.
 - The engine plays a full game: legal moves, battles, bonus turns, castling, en passant,
   promotion, wins and draws. Perft matches standard chess to depth 3.
 - `apps/web` is a playable hot-seat game (two players, one screen) built from the Game Screen v1
@@ -24,7 +24,7 @@ project for playing with friends.
 ## Source of truth
 
 - Rules: `docs/GAME_RULES.md` (wins over `docs/PRD.md`). Decision log: `docs/DECISIONS.md`.
-  All 17 rule decisions (R1–R17) and the stack decisions (D1–D6) are approved.
+  All 18 rule decisions (R1–R18) and the stack decisions (D1–D6) are approved.
 - Architecture: `docs/ARCHITECTURE.md`. Roadmap and progress: `docs/IMPLEMENTATION_PLAN.md`.
 - Never change gameplay silently. Propose the change, get approval, then update
   `GAME_RULES.md` and `DECISIONS.md` in the same PR.

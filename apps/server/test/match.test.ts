@@ -57,7 +57,8 @@ describe("starting a match", () => {
       m.join("a", "A");
       return only<MatchSnapshot>(m.join("b", "B"), "a", "snapshot");
     };
-    expect(run(42)).toEqual(run(42));
+    const rolled = (s: MatchSnapshot) => ({ state: s.state, players: s.players });
+    expect(rolled(run(42))).toEqual(rolled(run(42)));
     const boards = new Set([1, 2, 3, 4, 5].map((s) => JSON.stringify(run(s).state.board)));
     expect(boards.size).toBe(5);
   });

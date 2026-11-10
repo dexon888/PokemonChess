@@ -9,7 +9,20 @@ Clocks (R11, R17): create the room with `{ "timeControl": "5+3" }` (also `10+5`,
 `untimed`; default `10+5`). Snapshots carry `clocks`; the room arms a timer for the next possible
 flag, and any message arriving after the deadline loses on time first.
 
-Not yet: reconnect grace, private room codes, matchmaking, rematch (later M4 steps).
+Reconnection (R12, R13, R18):
+
+- A dropped connection holds the player's seat. The opponent gets a snapshot with that player
+  `connected: false` and `graceEndsAt` (compare with the snapshot's `serverTime`); the clock
+  keeps running. When the 60 s grace ends, both get a snapshot and the opponent may send
+  `claimVictory` (a win by abandonment) or keep waiting. The seat stays open while they wait.
+- The `@colyseus/sdk` client reconnects on its own after a short network drop, but only for
+  rooms that have been up at least 5 s. After a page reload, call
+  `client.reconnect(room.reconnectionToken)` with the token saved when joining (R13). Either
+  way the player gets their seat back and a fresh snapshot; nothing is re-rolled.
+- A deliberate `room.leave()` during a match starts no grace (R18): the opponent may claim at once.
+- The room closes once both players are gone for good (the match is over, or both graces ran out).
+
+Not yet: private room codes, matchmaking, rematch (later M4 steps).
 
 ## Run it
 

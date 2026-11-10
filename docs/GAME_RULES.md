@@ -76,7 +76,9 @@ Any move onto an enemy piece, or an en passant capture, is a battle. Resolve in 
 - White's clock starts as soon as both players are in the match. Only the side to move has a
   running clock; it stops when the game ends. (R17)
 - A disconnected player has a 60-second grace period; their clock keeps running. After it, the
-  opponent may claim victory or keep waiting. (R12)
+  opponent may claim victory or keep waiting. (R12) A claimed win is recorded as abandonment.
+- Leaving a match on purpose (not a dropped connection) starts no grace period: the opponent may
+  claim victory at once. To give up properly, resign. (R18)
 - Random outcomes are generated once on the server, logged, and never re-rolled.
 
 ## 7. King threat cue

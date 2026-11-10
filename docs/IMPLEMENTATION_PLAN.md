@@ -42,7 +42,7 @@ One small PR each, in order:
 - [x] `apps/server` with `MatchRoom`: Colyseus room running the engine authoritatively with a
       seeded `Rng`, an event log, events + snapshot broadcast; untimed; integration tests
 - [x] Clocks (R11): increments on every action including bonus actions, timeout loses (R17)
-- [ ] Reconnection (R12, R13): nickname, reconnect token, 60 s grace with the clock running,
+- [x] Reconnection (R12, R13, R18): nickname, reconnect token, 60 s grace with the clock running,
       claim victory after it
 - [ ] Private rooms: room code and invite link, time-control choice, no third player
 - [ ] Matchmaking: `QueueRoom` at 10+5 with cancel
