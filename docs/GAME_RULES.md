@@ -73,6 +73,8 @@ Any move onto an enemy piece, or an en passant capture, is a battle. Resolve in 
 
 - Matchmaking: 10 minutes + 5 seconds per action. Private rooms: 5+3, 10+5, 30+0 or untimed.
   Bonus actions also earn the increment. (R11)
+- White's clock starts as soon as both players are in the match. Only the side to move has a
+  running clock; it stops when the game ends. (R17)
 - A disconnected player has a 60-second grace period; their clock keeps running. After it, the
   opponent may claim victory or keep waiting. (R12)
 - Random outcomes are generated once on the server, logged, and never re-rolled.
