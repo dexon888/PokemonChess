@@ -23,15 +23,20 @@ const joinOptionsSchema = createPrivateOptionsSchema.partial({ timeControl: true
  * protocol schemas, hands it to the Match, and delivers what the Match returns. No game logic
  * lives here, and no Colyseus schema state is used (D6).
  *
- * Clocks: after every delivery the room arms one timer for the moment the side to move would run
- * out of time; when it fires, Match decides whether the flag has fallen.
+ * Time: after every delivery the room arms one timer for the next time-based event (a flag
+ * falling, or a reconnect grace ending); when it fires, Match decides what happened.
+ *
+ * Reconnection (R12, R13): a dropped player's seat is held with Colyseus's reconnection token for
+ * as long as the match needs it ("manual"), not just the 60-second grace, because after the grace
+ * the opponent may choose to keep waiting. The room closes once nobody can come back.
  */
 export class MatchRoom extends Room {
   override maxClients = 2;
   match!: Match;
   /** Kept so a match can be replayed from its log. */
   seed!: number;
-  private flagTimer: ReturnType<Room["clock"]["setTimeout"]> | null = null;
+  private wakeTimer: ReturnType<Room["clock"]["setTimeout"]> | null = null;
+  private closing = false;
 
   override onCreate(options: unknown) {
     const opts = createOptionsSchema.safeParse(options ?? {});
@@ -60,25 +65,60 @@ export class MatchRoom extends Room {
     this.deliver(this.match.join(client.sessionId, opts.data.nickname));
   }
 
+  /** Connection lost without the player choosing to leave: hold their seat (R12). */
+  override onDrop(client: Client) {
+    // Before the match starts, or while the room is closing, there is nothing to hold;
+    // Colyseus then calls onLeave.
+    if (!this.match.started || this.closing) return;
+    // Colyseus settles this promise itself (onReconnect, or onLeave when rejected); the catch
+    // only keeps a rejection during disposal from surfacing as unhandled.
+    this.allowReconnection(client, "manual").catch(() => {});
+    this.deliver(this.match.disconnect(client.sessionId));
+  }
+
+  override onBeforeShutdown() {
+    // Server shutdown drops every client; don't hold seats in a room that is going away.
+    this.closing = true;
+    super.onBeforeShutdown();
+  }
+
+  /** The player is back with their reconnection token (R13): same session, latest state. */
+  override onReconnect(client: Client) {
+    this.deliver(this.match.reconnect(client.sessionId));
+  }
+
+  /** Gone for good: a deliberate leave, or a held seat the room gave up on when closing. */
   override onLeave(client: Client) {
     this.deliver(this.match.leave(client.sessionId));
   }
 
   override onDispose() {
-    this.flagTimer?.clear();
+    this.wakeTimer?.clear();
   }
 
   private deliver(out: Outbound[]) {
     for (const o of out) this.clients.get(o.to)?.send(o.type, o.payload);
-    this.armFlagTimer();
+    if (this.match.everyoneGone()) {
+      this.close();
+      return;
+    }
+    this.armWakeTimer();
   }
 
-  /** (Re)arms the single flag timer. A timer that fires early simply re-arms itself. */
-  private armFlagTimer() {
-    this.flagTimer?.clear();
-    this.flagTimer = null;
-    const ms = this.match.msUntilFlag();
+  /** (Re)arms the single wake timer. A timer that fires early simply re-arms itself. */
+  private armWakeTimer() {
+    this.wakeTimer?.clear();
+    this.wakeTimer = null;
+    const ms = this.match.msUntilWake();
     if (ms === null) return;
-    this.flagTimer = this.clock.setTimeout(() => this.deliver(this.match.tick()), ms + 1);
+    this.wakeTimer = this.clock.setTimeout(() => this.deliver(this.match.tick()), ms + 1);
+  }
+
+  /** Nobody can come back: release held seats and dispose of the room. */
+  private close() {
+    if (this.closing) return;
+    this.closing = true;
+    this.wakeTimer?.clear();
+    void this.disconnect();
   }
 }

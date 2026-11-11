@@ -36,6 +36,8 @@ export interface MatchSnapshot {
   rematchRequestedBy: Color[];
   /** Number of actions applied so far; increases by one per `events` message. */
   seq: number;
+  /** Server time (ms since epoch) when this snapshot was made, for countdowns such as grace. */
+  serverTime: number;
 }
 
 /** One applied action: its events (every roll included) and the snapshot after it. */

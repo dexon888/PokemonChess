@@ -1,3 +1,4 @@
+import { matchMaker } from "@colyseus/core";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import type { ErrorMessage, MatchSnapshot, ServerMessages } from "@pokemon-chess/protocol";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -176,5 +177,65 @@ describe("MatchRoom clocks (R11)", () => {
       { type: "gameOver", status: { state: "won", winner: "black", reason: "timeout" } },
     ]);
     expect(b.snapshot.clocks).toMatchObject({ white: 0, running: null });
+  });
+});
+
+describe("MatchRoom reconnection (R12, R13)", () => {
+  it("a dropped player is held with a grace deadline, then comes back to the same seat", async () => {
+    const { room, a, b, aSnap } = await twoPlayers();
+    const bIn = inbox(b);
+    const token = a.reconnectionToken;
+    const before = Date.now();
+    // Drop without consent. (The SDK only auto-reconnects rooms older than 5 s, so the test
+    // reconnects explicitly with the token, as the web client will after a reload.)
+    await a.leave(false);
+
+    const dropped: MatchSnapshot = await bIn.next("snapshot");
+    const gone = dropped.players.find((p) => p.color === aSnap.you);
+    expect(gone?.connected).toBe(false);
+    expect(gone?.graceEndsAt).toBeGreaterThanOrEqual(before + 60_000);
+    expect(gone?.graceEndsAt).toBeLessThanOrEqual(Date.now() + 60_000);
+
+    const a2 = await colyseus.sdk.reconnect(token);
+    const a2In = inbox(a2);
+    const [back, seen] = await Promise.all([a2In.next("snapshot"), bIn.next("snapshot")]);
+    expect(a2.sessionId).toBe(a.sessionId);
+    expect(back.you).toBe(aSnap.you);
+    expect(back.state).toEqual(aSnap.state);
+    expect(seen.players.find((p) => p.color === aSnap.you)).toMatchObject({
+      connected: true,
+      graceEndsAt: null,
+    });
+    expect(room.clients).toHaveLength(2);
+  });
+
+  it("after a deliberate leave the opponent can claim victory by abandonment", async () => {
+    const { a, b, aSnap } = await twoPlayers();
+    const bIn = inbox(b);
+    await a.leave();
+    await bIn.next("snapshot");
+    b.send("claimVictory");
+    const ev = await bIn.next("events");
+    expect(ev.snapshot.state.status).toEqual({
+      state: "won",
+      winner: aSnap.you === "white" ? "black" : "white",
+      reason: "abandonment",
+    });
+  });
+
+  it("refuses a claim while the opponent is still connected", async () => {
+    const { white } = await twoPlayers();
+    white.c.send("claimVictory");
+    expect((await white.in.next("error")).code).toBe("cannotClaim");
+  });
+
+  it("closes the room once both players are gone after the match", async () => {
+    const { room, a, b } = await twoPlayers();
+    a.send("resign");
+    await inbox(b).next("events");
+    await a.leave();
+    await b.leave();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(matchMaker.getLocalRoomById(room.roomId)).toBeUndefined();
   });
 });
