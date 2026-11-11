@@ -49,6 +49,6 @@ One small PR each, in order:
 - [x] Web client, private rooms: home (nickname, create with a time control, join by code or link),
       lobby (code, copy invite link), online game driven by server events (clocks, offline
       grace and claim victory, draw offers, resign); local hot-seat kept at `/local`
-- [ ] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
+- [x] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
       with the saved reconnection token (R13)
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)

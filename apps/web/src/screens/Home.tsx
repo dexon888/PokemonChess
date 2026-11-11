@@ -23,12 +23,19 @@ export interface HomeProps {
   /** Code from a `/join/CODE` link, prefilled in the join form. */
   initialCode?: string;
   error?: string | null;
+  onFindMatch: (nickname: string) => void;
   onCreatePrivate: (nickname: string, tc: TimeControlId) => void;
   onJoinPrivate: (code: string, nickname: string) => void;
 }
 
-/** Home (PRD 6.4): pick a nickname, then create a private match or join one by code. */
-export function Home({ initialCode = "", error, onCreatePrivate, onJoinPrivate }: HomeProps) {
+/** Home (PRD 6.4): pick a nickname, then find a match, or create or join a private one. */
+export function Home({
+  initialCode = "",
+  error,
+  onFindMatch,
+  onCreatePrivate,
+  onJoinPrivate,
+}: HomeProps) {
   const [nickname, setNickname] = useState(savedNickname);
   const [tc, setTc] = useState<TimeControlId>("10+5");
   const [code, setCode] = useState(initialCode);
@@ -61,6 +68,12 @@ export function Home({ initialCode = "", error, onCreatePrivate, onJoinPrivate }
     onJoinPrivate(r.data, n);
   };
 
+  const find = (e: FormEvent) => {
+    e.preventDefault();
+    const n = nick();
+    if (n) onFindMatch(n);
+  };
+
   const shown = problem ?? error;
 
   return (
@@ -68,7 +81,7 @@ export function Home({ initialCode = "", error, onCreatePrivate, onJoinPrivate }
       <AppHeader />
       <main className="mx-auto flex max-w-[720px] flex-col gap-5 px-4 py-8">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Play with a friend</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Play Pokémon Chess</h1>
           <p className="mt-1 text-muted">
             Every piece is a random Pokémon. Captures are battles: type matchups, dodges and
             critical hits.
@@ -102,6 +115,24 @@ export function Home({ initialCode = "", error, onCreatePrivate, onJoinPrivate }
           </div>
         )}
 
+        <form
+          onSubmit={find}
+          className={`${card} flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between`}
+        >
+          <div>
+            <h2 className="font-display text-xl font-semibold">Find a match</h2>
+            <p className="text-sm text-muted">
+              Play the next person who searches. 10 + 5, random colours.
+            </p>
+          </div>
+          <button
+            type="submit"
+            className="h-12 w-full shrink-0 rounded-xl bg-accent px-8 font-semibold text-ink-dark sm:w-auto"
+          >
+            Find match
+          </button>
+        </form>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <form onSubmit={create} className={`${card} flex flex-col gap-4`}>
             <h2 className="font-display text-xl font-semibold">Create a private match</h2>
@@ -130,7 +161,7 @@ export function Home({ initialCode = "", error, onCreatePrivate, onJoinPrivate }
             </fieldset>
             <button
               type="submit"
-              className="mt-auto h-12 rounded-xl bg-accent font-semibold text-ink-dark"
+              className="mt-auto h-12 rounded-xl border border-accent font-semibold text-accent"
             >
               Create room
             </button>
