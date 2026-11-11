@@ -22,7 +22,22 @@ Reconnection (R12, R13, R18):
 - A deliberate `room.leave()` during a match starts no grace (R18): the opponent may claim at once.
 - The room closes once both players are gone for good (the match is over, or both graces ran out).
 
-Not yet: private room codes, matchmaking, rematch (later M4 steps).
+Private rooms (PRD 5.2, D7), room name `private`:
+
+- Host: `client.create("private", { nickname, timeControl })`, where `timeControl` is required
+  (`5+3`, `10+5`, `30+0` or `untimed`). The room ID is a 6-character invite code, for example
+  `K7PQ2M`; the invite link is just `<web origin>/join/K7PQ2M`.
+- While waiting, everyone in the room gets `lobby` messages (code, time control, players, when
+  the invite expires). The first `snapshot` means the match started.
+- Guest: `client.joinById(normalizeRoomCode(input), { nickname })`. `normalizeRoomCode` (from
+  `@pokemon-chess/protocol`) accepts a code typed in any case, with spaces or dashes, or a whole
+  pasted link.
+- The room is private (never matched by `joinOrCreate`) and locks at two players, so a third
+  player gets "room is locked". An unknown code gets "not found".
+- The invite expires if the host leaves before anyone joins, or after 30 minutes unused (the host
+  first gets an `error` with code `roomExpired`).
+
+Not yet: matchmaking, rematch (later M4 steps).
 
 ## Run it
 

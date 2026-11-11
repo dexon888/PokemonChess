@@ -1,12 +1,14 @@
 import { defineRoom } from "@colyseus/core";
 import config from "@colyseus/tools";
 import { MatchRoom } from "./MatchRoom.js";
+import { PrivateMatchRoom } from "./PrivateMatchRoom.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 
 export default config({
   rooms: {
     match: defineRoom(MatchRoom),
+    private: defineRoom(PrivateMatchRoom),
   },
   initializeExpress: async (app) => {
     app.get("/health", (_req, res) => {

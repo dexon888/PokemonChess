@@ -56,6 +56,8 @@ export interface MatchOptions {
   /** Tests: a fixed starting position and who gets White, instead of rolling them. */
   setup?: { position: Position; firstJoinerColor: Color };
   now?: () => number;
+  /** A private room joined by code (PRD 5.2); shown in the lobby. */
+  isPrivate?: boolean;
 }
 
 /**
@@ -66,6 +68,9 @@ export interface MatchOptions {
 export class Match {
   readonly matchId: string;
   readonly timeControl: TimeControlId;
+  readonly isPrivate: boolean;
+  /** Set by a private room while it waits for an opponent: when it will close unused. */
+  lobbyExpiresAt: number | null = null;
   readonly log: LogRecord[] = [];
   private readonly rng: Rng;
   private readonly setup: MatchOptions["setup"];
@@ -81,6 +86,7 @@ export class Match {
     this.timeControl = opts.timeControl;
     this.rng = opts.rng;
     this.setup = opts.setup;
+    this.isPrivate = opts.isPrivate ?? false;
     this.now = opts.now ?? Date.now;
     const tc = TIME_CONTROLS[opts.timeControl];
     this.clock = tc ? new ChessClock(tc.initialMs, tc.incrementMs) : null;
@@ -156,7 +162,7 @@ export class Match {
       graceEndsAt: null,
       graceAnnounced: false,
     });
-    return this.isFull ? this.start() : [];
+    return this.isFull ? this.start() : this.lobby();
   }
 
   /**
@@ -194,7 +200,7 @@ export class Match {
     if (!this.started) {
       // Nobody has played yet: free the seat for someone else.
       this.seats.splice(this.seats.indexOf(seat), 1);
-      return [];
+      return this.lobby();
     }
     seat.connected = false;
     seat.graceEndsAt = this.isActive ? this.now() : null;
@@ -339,6 +345,20 @@ export class Match {
       type: "snapshot" as const,
       payload: this.snapshotFor(s.sessionId),
     }));
+  }
+
+  /** Waiting-room update for everyone seated, until the match starts (PRD 6.6). */
+  private lobby(): Outbound[] {
+    if (this.started) return [];
+    const payload = {
+      roomId: this.matchId,
+      private: this.isPrivate,
+      timeControl: this.timeControl,
+      players: this.seats.map((s) => ({ nickname: s.nickname })),
+      expiresAt: this.lobbyExpiresAt,
+      serverTime: this.now(),
+    };
+    return this.seats.map((s) => ({ to: s.sessionId, type: "lobby" as const, payload }));
   }
 
   private error(sessionId: string, code: ErrorCode, message: string): Outbound[] {

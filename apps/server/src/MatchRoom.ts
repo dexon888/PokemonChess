@@ -41,12 +41,17 @@ export class MatchRoom extends Room {
   override onCreate(options: unknown) {
     const opts = createOptionsSchema.safeParse(options ?? {});
     if (!opts.success) throw new ServerError(400, z.prettifyError(opts.error));
+    this.setUp(opts.data.timeControl ?? MATCHMAKING_TIME_CONTROL, false);
+  }
 
+  /** Creates the Match (after the room ID is final) and routes every client message to it. */
+  protected setUp(timeControl: TimeControlId, isPrivate: boolean) {
     this.seed = randomInt(2 ** 31);
     this.match = new Match({
       matchId: this.roomId,
-      timeControl: opts.data.timeControl ?? MATCHMAKING_TIME_CONTROL,
+      timeControl,
       rng: createSeededRng(this.seed),
+      isPrivate,
     });
 
     this.onMessage("*", (client: Client, type: string | number, payload: unknown) => {
@@ -96,7 +101,7 @@ export class MatchRoom extends Room {
     this.wakeTimer?.clear();
   }
 
-  private deliver(out: Outbound[]) {
+  protected deliver(out: Outbound[]) {
     for (const o of out) this.clients.get(o.to)?.send(o.type, o.payload);
     if (this.match.everyoneGone()) {
       this.close();
@@ -115,7 +120,7 @@ export class MatchRoom extends Room {
   }
 
   /** Nobody can come back: release held seats and dispose of the room. */
-  private close() {
+  protected close() {
     if (this.closing) return;
     this.closing = true;
     this.wakeTimer?.clear();
