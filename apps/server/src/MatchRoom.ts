@@ -6,14 +6,20 @@ import {
   MATCHMAKING_TIME_CONTROL,
   parseClientMessage,
   TIME_CONTROL_IDS,
+  type ErrorCode,
   type TimeControlId,
 } from "@pokemon-chess/protocol";
 import { z } from "zod";
 import { Match, type Outbound } from "./match.js";
 
-/** Room creation: an optional time control; defaults to the matchmaking 10+5 (R11). */
+/**
+ * Room creation: an optional time control (default: the matchmaking 10+5, R11). `matchmade`
+ * marks a room the queue created for two paired players: it is unlisted, and it cancels itself
+ * if both never arrive.
+ */
 const createOptionsSchema = z.object({
   timeControl: z.enum(TIME_CONTROL_IDS as [TimeControlId, ...TimeControlId[]]).optional(),
+  matchmade: z.boolean().optional(),
 });
 /** Joining: a nickname, plus the creator's time control when they created the room. */
 const joinOptionsSchema = createPrivateOptionsSchema.partial({ timeControl: true });
@@ -31,17 +37,44 @@ const joinOptionsSchema = createPrivateOptionsSchema.partial({ timeControl: true
  * the opponent may choose to keep waiting. The room closes once nobody can come back.
  */
 export class MatchRoom extends Room {
+  /** How long a matchmade room waits for both paired players. Tests shorten it. */
+  static noShowTimeoutMs = 20_000;
   override maxClients = 2;
   match!: Match;
   /** Kept so a match can be replayed from its log. */
   seed!: number;
   private wakeTimer: ReturnType<Room["clock"]["setTimeout"]> | null = null;
+  private expiryTimer: ReturnType<Room["clock"]["setTimeout"]> | null = null;
   private closing = false;
 
-  override onCreate(options: unknown) {
+  override async onCreate(options: unknown) {
     const opts = createOptionsSchema.safeParse(options ?? {});
     if (!opts.success) throw new ServerError(400, z.prettifyError(opts.error));
     this.setUp(opts.data.timeControl ?? MATCHMAKING_TIME_CONTROL, false);
+    if (opts.data.matchmade) {
+      await this.setPrivate(true);
+      // A paired player's seat stays reserved exactly as long as the no-show window, so an
+      // unused reservation never keeps the room alive past it.
+      this.seatReservationTimeout = Math.max(1, Math.ceil(MatchRoom.noShowTimeoutMs / 1000));
+      this.expireUnstartedAfter(
+        MatchRoom.noShowTimeoutMs,
+        "matchCancelled",
+        "Your opponent did not arrive; search again",
+      );
+    }
+  }
+
+  /**
+   * Closes the room if the match has not started within `ms`, first telling anyone waiting why.
+   * Used for unused private invites and for matchmade opponents who never arrive.
+   */
+  protected expireUnstartedAfter(ms: number, code: ErrorCode, message: string) {
+    this.match.lobbyExpiresAt = this.match.now() + ms;
+    this.expiryTimer = this.clock.setTimeout(() => {
+      if (this.match.started) return;
+      for (const c of this.clients) c.send("error", { code, message });
+      this.close();
+    }, ms);
   }
 
   /** Creates the Match (after the room ID is final) and routes every client message to it. */
@@ -68,6 +101,11 @@ export class MatchRoom extends Room {
     const opts = joinOptionsSchema.safeParse(options);
     if (!opts.success) throw new ServerError(400, z.prettifyError(opts.error));
     this.deliver(this.match.join(client.sessionId, opts.data.nickname));
+    if (this.match.started && this.expiryTimer) {
+      this.expiryTimer.clear();
+      this.expiryTimer = null;
+      this.match.lobbyExpiresAt = null;
+    }
   }
 
   /** Connection lost without the player choosing to leave: hold their seat (R12). */
@@ -99,6 +137,7 @@ export class MatchRoom extends Room {
 
   override onDispose() {
     this.wakeTimer?.clear();
+    this.expiryTimer?.clear();
   }
 
   protected deliver(out: Outbound[]) {

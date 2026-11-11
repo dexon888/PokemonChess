@@ -37,7 +37,20 @@ Private rooms (PRD 5.2, D7), room name `private`:
 - The invite expires if the host leaves before anyone joins, or after 30 minutes unused (the host
   first gets an `error` with code `roomExpired`).
 
-Not yet: matchmaking, rematch (later M4 steps).
+Matchmaking (PRD 5.1, D8), room name `queue`:
+
+- Search: `client.joinOrCreate("queue", { nickname })`. While searching you get `queue` messages
+  (players searching, when you joined, server time) for the PRD 6.5 screen.
+- Cancel: `room.leave()` on the queue room.
+- The two longest-waiting players are paired. The queue creates an unlisted 10+5 `match` room
+  and sends each player `matchFound` with their seat reservation and the opponent's nickname.
+  Enter with `client.consumeSeatReservation(msg.reservation)`, then leave the queue room.
+  Colours and Pokémon are rolled in the match.
+- A paired player has 20 s to enter (`MatchRoom.noShowTimeoutMs`). If the opponent never
+  arrives, the player who did gets an `error` with code `matchCancelled` and is sent back; the
+  client should search again.
+
+Not yet: rematch and the results screen (last M4 step).
 
 ## Run it
 

@@ -54,7 +54,9 @@ export type ErrorCode =
   | "notAPlayer"
   | "matchNotActive"
   | "cannotClaim"
-  | "roomExpired";
+  | "roomExpired"
+  /** A matchmade opponent never arrived; search again. */
+  | "matchCancelled";
 
 export interface ErrorMessage {
   code: ErrorCode;
@@ -78,7 +80,30 @@ export interface LobbyMessage {
   serverTime: number;
 }
 
+/** Matchmaking queue status (PRD 6.5), sent to everyone searching whenever it changes. */
+export interface QueueMessage {
+  timeControl: TimeControlId;
+  /** Players currently searching, you included. */
+  searching: number;
+  /** When you started searching (server ms since epoch), for an elapsed-time display. */
+  joinedAt: number;
+  serverTime: number;
+}
+
+/**
+ * Matchmaking paired you (PRD 5.1). Pass `reservation` to `client.consumeSeatReservation()` to
+ * enter the match, then leave the queue room. Colours are assigned in the match.
+ */
+export interface MatchFoundMessage {
+  /** Opaque Colyseus seat reservation; valid for a few seconds. */
+  reservation: unknown;
+  timeControl: TimeControlId;
+  opponent: { nickname: string };
+}
+
 export interface ServerMessages {
+  queue: QueueMessage;
+  matchFound: MatchFoundMessage;
   lobby: LobbyMessage;
   snapshot: MatchSnapshot;
   events: MatchEventsMessage;

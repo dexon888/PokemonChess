@@ -3,8 +3,13 @@ import type { ServerMessages } from "@pokemon-chess/protocol";
 
 export type SdkRoom = Awaited<ReturnType<ColyseusTestServer["connectTo"]>>;
 
+/** Anything that delivers all messages to one "*" handler (any SDK room, whatever its type). */
+interface MessageSource {
+  onMessage(type: "*", cb: (type: string | number, payload: unknown) => void): unknown;
+}
+
 /** Collects every message a client receives, by type, and lets a test await the next one. */
-export function inbox(room: SdkRoom) {
+export function inbox(room: MessageSource) {
   const seen: { type: string; payload: unknown }[] = [];
   const waiters: { type: string; resolve: (p: unknown) => void }[] = [];
   room.onMessage("*", (type: string | number, payload: unknown) => {
