@@ -9,12 +9,13 @@ project for playing with friends.
 - Milestones 0 (planning), 2 (rules engine) and 3 (local prototype) are done. **Milestone 4
   (online multiplayer, Colyseus) is in progress**; its step-by-step breakdown is at the end of
   `docs/IMPLEMENTATION_PLAN.md`.
-- `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17), reconnection (R12, R13, R18), private rooms joined by invite code (D7) and a matchmaking queue (D8). Next:
-  the online web client, then rematch and results.
+- `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17), reconnection (R12, R13, R18), private rooms joined by invite code (D7) and a matchmaking queue (D8).
+  Next: Find Match in the web client, then rematch and results.
 - The engine plays a full game: legal moves, battles, bonus turns, castling, en passant,
   promotion, wins and draws. Perft matches standard chess to depth 3.
-- `apps/web` is a playable hot-seat game (two players, one screen) built from the Game Screen v1
-  design. For now the engine runs in the browser; M4 moves battle resolution to the server.
+- `apps/web` plays online in private rooms: home → lobby → a game screen driven by server events
+  (`src/net/useOnlineMatch.ts`). The hot-seat game (engine in the browser) lives at `/local`.
+  Both share `useGameView` and `narrate`, so the log, banners and animations are identical.
 - Piece moves are animated from engine events (`apps/web/src/game/motion.ts`); the board only
   plays what the events report. The board is an ARIA grid with keyboard play
   (`apps/web/src/game/boardNav.ts`). The battle log collapses on phones. All listed M3 polish
@@ -51,13 +52,18 @@ project for playing with friends.
   `pnpm --filter @pokemon-chess/roster generate`; never hand-edit `roster.v1.ts`.
 - `packages/protocol`: Zod schemas for every client message, shared server message types,
   time controls. Both apps import it.
-- `apps/web`: Vite + React + Tailwind client.
+- `apps/web`: Vite + React + Tailwind client. `src/screens` (home, lobby, game), `src/net`
+  (Colyseus SDK; server URL from `VITE_SERVER_URL`, else port 2567 on the page's host),
+  `src/game` (view state, narration, animations, keyboard).
 - `apps/server`: Colyseus 0.18 server. Game logic lives in the transport-free `Match` class
   (`src/match.ts`); `MatchRoom` only validates and delivers. See `apps/server/README.md`.
 
 ## Commands (pnpm 10, Node 22+)
 
-- `pnpm dev` (http://localhost:5173, add `?seed=123` to replay a game), `pnpm dev:server`
+- Online play needs both: `pnpm dev:server` and `pnpm dev`, then open http://localhost:5173 in
+  two windows (a normal and a private one, so each keeps its own nickname). Hot-seat:
+  http://localhost:5173/local (add `?seed=123` to replay a game).
+- `pnpm dev` (http://localhost:5173), `pnpm dev:server`
   (ws://localhost:2567, playground at http://localhost:2567/playground), `pnpm test`,
   `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm format`
 - The owner develops on Windows; keep scripts cross-platform (no bash-only commands in

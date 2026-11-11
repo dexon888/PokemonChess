@@ -46,5 +46,9 @@ One small PR each, in order:
       claim victory after it
 - [x] Private rooms: room code and invite link, time-control choice, no third player (D7)
 - [x] Matchmaking: `QueueRoom` at 10+5 with cancel (D8)
-- [ ] Web client: home, matchmaking and lobby screens; online game driven by server events
+- [x] Web client, private rooms: home (nickname, create with a time control, join by code or link),
+      lobby (code, copy invite link), online game driven by server events (clocks, offline
+      grace and claim victory, draw offers, resign); local hot-seat kept at `/local`
+- [ ] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
+      with the saved reconnection token (R13)
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
