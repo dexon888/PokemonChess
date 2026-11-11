@@ -44,7 +44,7 @@ One small PR each, in order:
 - [x] Clocks (R11): increments on every action including bonus actions, timeout loses (R17)
 - [x] Reconnection (R12, R13, R18): nickname, reconnect token, 60 s grace with the clock running,
       claim victory after it
-- [ ] Private rooms: room code and invite link, time-control choice, no third player
+- [x] Private rooms: room code and invite link, time-control choice, no third player (D7)
 - [ ] Matchmaking: `QueueRoom` at 10+5 with cancel
 - [ ] Web client: home, matchmaking and lobby screens; online game driven by server events
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)

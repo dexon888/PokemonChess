@@ -53,7 +53,8 @@ export type ErrorCode =
   | "notYourTurn"
   | "notAPlayer"
   | "matchNotActive"
-  | "cannotClaim";
+  | "cannotClaim"
+  | "roomExpired";
 
 export interface ErrorMessage {
   code: ErrorCode;
@@ -61,7 +62,24 @@ export interface ErrorMessage {
 }
 
 /** Server → client message types and their payloads. */
+/**
+ * Before the match starts (PRD 6.6): who is in the room while it waits for an opponent. Sent to
+ * everyone in the room on every change; the first `snapshot` means the match has started.
+ */
+export interface LobbyMessage {
+  /** The room ID. For a private room this is the invite code. */
+  roomId: string;
+  private: boolean;
+  timeControl: TimeControlId;
+  /** Players in join order; the first is the host. */
+  players: { nickname: string }[];
+  /** For a private room that nobody has joined yet: when it closes (server ms since epoch). */
+  expiresAt: number | null;
+  serverTime: number;
+}
+
 export interface ServerMessages {
+  lobby: LobbyMessage;
   snapshot: MatchSnapshot;
   events: MatchEventsMessage;
   error: ErrorMessage;
