@@ -78,9 +78,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@colyseus/sdk':
+        specifier: ~0.18.9
+        version: 0.18.9(@colyseus/core@0.18.27)(typescript@5.9.3)(zod@4.6.7)
       '@pokemon-chess/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@pokemon-chess/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       '@pokemon-chess/roster':
         specifier: workspace:*
         version: link:../../packages/roster

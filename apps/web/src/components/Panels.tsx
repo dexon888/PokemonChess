@@ -10,7 +10,7 @@ import {
   type Square,
 } from "@pokemon-chess/engine";
 import { useEffect, useRef, useState } from "react";
-import type { Banner, LogEntry, LogTag, Stats } from "../game/useLocalGame";
+import type { Banner, LogEntry, LogTag, Stats } from "../game/narrate";
 import { EFFECT_RESULT, EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeTextColor } from "../game/theme";
 import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
@@ -28,7 +28,35 @@ export function TypeChip({ type }: { type: PokemonType }) {
   );
 }
 
-export function PlayerBar({ game, color, name }: { game: GameState; color: Color; name: string }) {
+/** Remaining time as m:ss, or s.t under ten seconds. */
+export function formatClock(ms: number): string {
+  const t = Math.max(0, ms);
+  if (t < 10_000) return (Math.floor(t / 100) / 10).toFixed(1);
+  const total = Math.ceil(t / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export interface Presence {
+  connected: boolean;
+  /** While offline: ms left in the reconnect grace (R12); 0 once it has run out. */
+  graceLeftMs: number | null;
+}
+
+export function PlayerBar({
+  game,
+  color,
+  name,
+  clock,
+  presence,
+  isYou,
+}: {
+  game: GameState;
+  color: Color;
+  name: string;
+  clock?: { ms: number; running: boolean } | null;
+  presence?: Presence;
+  isYou?: boolean;
+}) {
   const active = game.status.state === "active" && game.turn === color;
   const left = game.board.filter((p) => p?.color === color).length;
   const threatened = game.status.state === "active" && kingThreatened(game, color);
@@ -51,6 +79,7 @@ export function PlayerBar({ game, color, name }: { game: GameState; color: Color
         <div className="flex flex-col">
           <span className="text-[15px] font-semibold">
             {name}
+            {isYou ? " (you)" : ""}
             {active ? " · to move" : ""}
           </span>
           <span className="text-xs text-muted">
@@ -67,6 +96,31 @@ export function PlayerBar({ game, color, name }: { game: GameState; color: Color
         {active && game.bonusTurn && (
           <span className="rounded-full bg-[#FBBF24] px-3 py-1 text-[13px] font-semibold text-[#1A1405]">
             Bonus turn · move again
+          </span>
+        )}
+        {presence && !presence.connected && (
+          <span
+            role="status"
+            className="rounded-full border border-[#F87171] px-3 py-1 text-xs font-semibold text-[#FCA5A5]"
+          >
+            Offline
+            {presence.graceLeftMs !== null && presence.graceLeftMs > 0
+              ? ` · ${Math.ceil(presence.graceLeftMs / 1000)}s to return`
+              : ""}
+          </span>
+        )}
+        {clock && (
+          <span
+            aria-label={`${color} clock ${formatClock(clock.ms)}`}
+            className={`min-w-[72px] rounded-lg px-3 py-1 text-center font-display text-lg font-bold tabular-nums ${
+              clock.running
+                ? clock.ms < 20_000
+                  ? "bg-[#F87171] text-[#2A0707]"
+                  : "bg-[#F4F6FF] text-ink-dark"
+                : "bg-card-2 text-muted"
+            }`}
+          >
+            {formatClock(clock.ms)}
           </span>
         )}
       </div>
@@ -374,11 +428,13 @@ export function GameOverDialog({
   stats,
   onNewGame,
   onClose,
+  newGameLabel = "New game",
 }: {
   game: GameState;
   stats: Record<Color, Stats>;
   onNewGame: () => void;
   onClose: () => void;
+  newGameLabel?: string;
 }) {
   if (game.status.state === "active") return null;
   const s = game.status;
@@ -441,7 +497,7 @@ export function GameOverDialog({
             onClick={onNewGame}
             className="h-12 flex-1 rounded-xl bg-accent font-semibold text-ink-dark"
           >
-            New game
+            {newGameLabel}
           </button>
           <button
             type="button"
