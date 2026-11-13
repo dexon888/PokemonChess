@@ -4,6 +4,7 @@ import { useOnlineMatch } from "./net/useOnlineMatch";
 import { Home } from "./screens/Home";
 import { LocalGameScreen } from "./screens/LocalGameScreen";
 import { Lobby } from "./screens/Lobby";
+import { Searching } from "./screens/Searching";
 import { OnlineGameScreen } from "./screens/OnlineGameScreen";
 
 /**
@@ -33,6 +34,8 @@ function OnlineApp({ initialCode }: { initialCode: string }) {
           </p>
         </div>
       );
+    case "searching":
+      return <Searching queue={m.phase.queue} note={m.phase.note} onCancel={m.cancelSearch} />;
     case "lobby":
       return <Lobby lobby={m.phase.lobby} onLeave={m.leave} />;
     case "playing":
@@ -42,6 +45,10 @@ function OnlineApp({ initialCode }: { initialCode: string }) {
         <Home
           initialCode={initialCode}
           error={m.phase.kind === "error" || m.phase.kind === "ended" ? m.phase.message : null}
+          onFindMatch={(nickname) => {
+            toRoot();
+            void m.findMatch(nickname);
+          }}
           onCreatePrivate={(nickname, tc) => {
             toRoot();
             void m.createPrivate(nickname, tc);

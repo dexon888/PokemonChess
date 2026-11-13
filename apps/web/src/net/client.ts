@@ -37,3 +37,32 @@ export function saveNickname(nickname: string) {
     // Storage blocked: the player just retypes it next time.
   }
 }
+
+const SESSION_KEY = "pc.session";
+
+/** The match this tab is in, kept across a reload so the player can rejoin (R13). */
+export interface SavedSession {
+  roomId: string;
+  reconnectionToken: string;
+}
+
+export function savedSession(): SavedSession | null {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    const s = raw ? (JSON.parse(raw) as Partial<SavedSession>) : null;
+    return s?.roomId && s.reconnectionToken
+      ? { roomId: s.roomId, reconnectionToken: s.reconnectionToken }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSession(s: SavedSession | null) {
+  try {
+    if (s) window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else window.sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Storage blocked: a reload simply cannot rejoin.
+  }
+}
