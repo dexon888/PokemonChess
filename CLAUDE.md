@@ -10,12 +10,14 @@ project for playing with friends.
   (online multiplayer, Colyseus) is in progress**; its step-by-step breakdown is at the end of
   `docs/IMPLEMENTATION_PLAN.md`.
 - `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17), reconnection (R12, R13, R18), private rooms joined by invite code (D7) and a matchmaking queue (D8).
-  Next: Find Match in the web client, then rematch and results.
+  Next (last M4 step): rematch and the results screen.
 - The engine plays a full game: legal moves, battles, bonus turns, castling, en passant,
   promotion, wins and draws. Perft matches standard chess to depth 3.
-- `apps/web` plays online in private rooms: home → lobby → a game screen driven by server events
+- `apps/web` plays online: Find Match or a private room, then a game screen driven by server events
   (`src/net/useOnlineMatch.ts`). The hot-seat game (engine in the browser) lives at `/local`.
   Both share `useGameView` and `narrate`, so the log, banners and animations are identical.
+  Each tab saves its match (room + reconnection token) in sessionStorage and rejoins it after a
+  reload (R13).
 - Piece moves are animated from engine events (`apps/web/src/game/motion.ts`); the board only
   plays what the events report. The board is an ARIA grid with keyboard play
   (`apps/web/src/game/boardNav.ts`). The battle log collapses on phones. All listed M3 polish
