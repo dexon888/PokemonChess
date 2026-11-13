@@ -50,6 +50,7 @@ export function useOnlineMatch() {
   const roomRef = useRef<Room | null>(null);
   const queueRef = useRef<Room | null>(null);
   const seqRef = useRef<number | null>(null);
+  const gameRef = useRef<number | null>(null);
   const nicknameRef = useRef("");
   const findMatchRef = useRef<(nickname: string, note?: string) => Promise<void>>(async () => {});
 
@@ -75,6 +76,7 @@ export function useOnlineMatch() {
     (room: Room) => {
       roomRef.current = room;
       seqRef.current = null;
+      gameRef.current = null;
       viewRef.current.reset(null);
       setSnapshot(null);
       setConnection("ok");
@@ -82,7 +84,14 @@ export function useOnlineMatch() {
 
       room.onMessage("lobby", (l: LobbyMessage) => setPhase({ kind: "lobby", lobby: l }));
       room.onMessage("snapshot", (s: MatchSnapshot) => {
-        if (seqRef.current !== s.seq || !viewRef.current.game) viewRef.current.load(s.state);
+        if (gameRef.current !== null && s.game !== gameRef.current) {
+          // A rematch started (PRD 5.5): a clean slate, and say which colour you play now.
+          viewRef.current.reset(s.state);
+          setNotice(`Rematch! You play ${s.you === "white" ? "White" : "Black"} this time.`);
+        } else if (seqRef.current !== s.seq || !viewRef.current.game) {
+          viewRef.current.load(s.state);
+        }
+        gameRef.current = s.game;
         seqRef.current = s.seq;
         take(s);
       });
@@ -256,6 +265,7 @@ export function useOnlineMatch() {
     offerDraw: () => send("offerDraw"),
     answerDraw: (accept: boolean) => send("answerDraw", { accept }),
     claimVictory: () => send("claimVictory"),
+    rematch: () => send("rematch"),
   };
 }
 

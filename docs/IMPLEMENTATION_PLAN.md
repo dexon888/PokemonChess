@@ -51,4 +51,4 @@ One small PR each, in order:
       grace and claim victory, draw offers, resign); local hot-seat kept at `/local`
 - [x] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
       with the saved reconnection token (R13)
-- [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
+- [x] Rematch (PRD 5.5, R19) and results screen with server-counted stats (PRD 6.7)

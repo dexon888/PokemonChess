@@ -5,6 +5,7 @@ Approved changes and clarifications to the PRD. Newest first. Gameplay rules liv
 
 | ID  | Date       | Decision                                                                                                            | Reason                                                                                   |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| R19 | 2026-11-12 | A rematch swaps colours; new Pokémon, types and clocks                                                              | Fair over a series; the PRD did not say who plays White                                  |
 | D8  | 2026-11-10 | Matchmaking pairs first come, first served at 10+5; a paired player has 20 s to enter or the match is cancelled     | Simple and fair while there are few players; no ratings yet (PRD 1.4)                    |
 | D7  | 2026-11-10 | Private invites: the room ID is a 6-character code (no look-alike characters); unused rooms expire after 30 minutes | Easy to read aloud or type; old invites stop working instead of lingering                |
 | R18 | 2026-11-09 | A deliberate leave starts no grace; the opponent may claim victory at once                                          | R12 covers dropped connections only; a leaver is not coming back                         |

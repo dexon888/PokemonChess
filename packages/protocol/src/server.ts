@@ -24,17 +24,31 @@ export interface ClockState {
   at: number;
 }
 
+/** Per-side tallies for the results screen (PRD 6.7), counted by the server from the match log. */
+export interface MatchStats {
+  /** Battles that removed the defender (2×, 1× and ½× trades). */
+  captures: number;
+  superEffective: number;
+  crits: number;
+  /** Attacks this side's pieces dodged. */
+  dodges: number;
+}
+
 export interface MatchSnapshot {
   matchId: string;
+  /** Which game in this room: 1, then 2 after a rematch, and so on (PRD 5.5). */
+  game: number;
   state: GameState;
+  stats: Record<Color, MatchStats>;
   players: PlayerInfo[];
   /** The receiving player's colour; null for anyone else. */
   you: Color | null;
   timeControl: TimeControlId;
   clocks: ClockState | null;
   drawOfferFrom: Color | null;
+  /** After a game ends: who has asked for a rematch. When both have, the next game starts. */
   rematchRequestedBy: Color[];
-  /** Number of actions applied so far; increases by one per `events` message. */
+  /** Actions applied in this game so far; increases by one per `events` message. */
   seq: number;
   /** Server time (ms since epoch) when this snapshot was made, for countdowns such as grace. */
   serverTime: number;
