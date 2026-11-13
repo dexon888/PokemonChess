@@ -36,7 +36,18 @@ const only = <T>(out: Outbound[], who: string, type: Outbound["type"]) => {
 describe("starting a match", () => {
   it("waits for the second player, then sends each a personal snapshot", () => {
     const match = new Match({ matchId: "m1", timeControl: "untimed", rng: createSeededRng(7) });
-    expect(match.join("a", "Ash")).toEqual([]);
+    const waiting = match.join("a", "Ash");
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0]).toMatchObject({
+      to: "a",
+      type: "lobby",
+      payload: {
+        roomId: "m1",
+        private: false,
+        timeControl: "untimed",
+        players: [{ nickname: "Ash" }],
+      },
+    });
     expect(match.started).toBe(false);
 
     const out = match.join("b", "Gary");
@@ -57,7 +68,8 @@ describe("starting a match", () => {
       m.join("a", "A");
       return only<MatchSnapshot>(m.join("b", "B"), "a", "snapshot");
     };
-    expect(run(42)).toEqual(run(42));
+    const rolled = (s: MatchSnapshot) => ({ state: s.state, players: s.players });
+    expect(rolled(run(42))).toEqual(rolled(run(42)));
     const boards = new Set([1, 2, 3, 4, 5].map((s) => JSON.stringify(run(s).state.board)));
     expect(boards.size).toBe(5);
   });
@@ -182,5 +194,35 @@ describe("disconnects (before reconnection support)", () => {
     const out = match.leave("b");
     const w = only<MatchSnapshot>(out, "w", "snapshot");
     expect(w.players.find((p) => p.color === "black")?.connected).toBe(false);
+  });
+});
+
+describe("lobby (PRD 6.6)", () => {
+  it("tells everyone waiting who is in the room, including after someone leaves", () => {
+    const match = new Match({
+      matchId: "K7PQ2M",
+      timeControl: "5+3",
+      rng: createSeededRng(3),
+      isPrivate: true,
+      now: () => 500,
+    });
+    match.lobbyExpiresAt = 60_500;
+    const first = match.join("a", "Ash");
+    expect(first[0]?.payload).toEqual({
+      roomId: "K7PQ2M",
+      private: true,
+      timeControl: "5+3",
+      players: [{ nickname: "Ash" }],
+      expiresAt: 60_500,
+      serverTime: 500,
+    });
+    expect(match.leave("a")).toEqual([]); // nobody left to tell
+  });
+
+  it("stops sending lobby updates once the match starts", () => {
+    const match = new Match({ matchId: "m", timeControl: "untimed", rng: createSeededRng(3) });
+    match.join("a", "Ash");
+    const out = match.join("b", "Gary");
+    expect(out.map((o) => o.type)).toEqual(["snapshot", "snapshot"]);
   });
 });

@@ -11,7 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@colyseus/sdk": "~0.18.9",
     "@pokemon-chess/engine": "workspace:*",
+    "@pokemon-chess/protocol": "workspace:*",
     "@pokemon-chess/roster": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

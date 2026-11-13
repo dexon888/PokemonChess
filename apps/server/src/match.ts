@@ -12,6 +12,7 @@ import {
   type Rng,
 } from "@pokemon-chess/engine";
 import {
+  RECONNECT_GRACE_MS,
   TIME_CONTROLS,
   type ClientMessage,
   type ErrorCode,
@@ -32,6 +33,10 @@ interface Seat {
   nickname: string;
   color: Color | null;
   connected: boolean;
+  /** While disconnected in an active match: when the reconnect grace ends (R12). */
+  graceEndsAt: number | null;
+  /** Whether both players have been told this seat's grace ran out. */
+  graceAnnounced: boolean;
 }
 
 /** One applied action in the match log. Battle events carry every roll, so the log is a replay. */
@@ -51,6 +56,8 @@ export interface MatchOptions {
   /** Tests: a fixed starting position and who gets White, instead of rolling them. */
   setup?: { position: Position; firstJoinerColor: Color };
   now?: () => number;
+  /** A private room joined by code (PRD 5.2); shown in the lobby. */
+  isPrivate?: boolean;
 }
 
 /**
@@ -61,6 +68,9 @@ export interface MatchOptions {
 export class Match {
   readonly matchId: string;
   readonly timeControl: TimeControlId;
+  readonly isPrivate: boolean;
+  /** Set by a private room while it waits for an opponent: when it will close unused. */
+  lobbyExpiresAt: number | null = null;
   readonly log: LogRecord[] = [];
   private readonly rng: Rng;
   private readonly setup: MatchOptions["setup"];
@@ -76,6 +86,7 @@ export class Match {
     this.timeControl = opts.timeControl;
     this.rng = opts.rng;
     this.setup = opts.setup;
+    this.isPrivate = opts.isPrivate ?? false;
     this.now = opts.now ?? Date.now;
     const tc = TIME_CONTROLS[opts.timeControl];
     this.clock = tc ? new ChessClock(tc.initialMs, tc.incrementMs) : null;
@@ -86,11 +97,47 @@ export class Match {
     return this.clock?.msUntilFlag(this.now()) ?? null;
   }
 
-  /** Ends the match on time if the side to move has run out (R11). The room calls this on a timer. */
+  /**
+   * Milliseconds until something time-based happens (a flag falls or a reconnect grace ends),
+   * or null when nothing is pending. The room arms one timer for this and then calls `tick()`.
+   */
+  msUntilWake(): number | null {
+    const now = this.now();
+    const waits = this.seats
+      .filter((s) => s.graceEndsAt !== null && !s.graceAnnounced)
+      .map((s) => Math.max(0, (s.graceEndsAt as number) - now));
+    const flag = this.msUntilFlag();
+    if (flag !== null) waits.push(flag);
+    return waits.length ? Math.min(...waits) : null;
+  }
+
+  /**
+   * Time-based updates: ends the match on time if the side to move has run out (R11), and tells
+   * both players when a disconnected opponent's grace has run out, so a win can be claimed (R12).
+   */
   tick(): Outbound[] {
-    const flagged = this.clock?.flagged(this.now());
-    if (!flagged || this.game?.status.state !== "active") return [];
-    return this.apply(null, flagged, { type: "timeout", color: flagged });
+    const now = this.now();
+    const flagged = this.clock?.flagged(now);
+    if (flagged && this.game?.status.state === "active") {
+      return this.apply(null, flagged, { type: "timeout", color: flagged });
+    }
+    const expired = this.seats.filter(
+      (s) => s.graceEndsAt !== null && !s.graceAnnounced && now >= s.graceEndsAt,
+    );
+    if (!expired.length) return [];
+    for (const s of expired) s.graceAnnounced = true;
+    return this.snapshots();
+  }
+
+  /**
+   * True when nobody will come back: every player is disconnected, and either the match is over
+   * or every grace has run out. The room then closes.
+   */
+  everyoneGone(): boolean {
+    if (!this.seats.length || this.seats.some((s) => s.connected)) return false;
+    if (this.game?.status.state !== "active") return true;
+    const now = this.now();
+    return this.seats.every((s) => s.graceEndsAt !== null && now >= s.graceEndsAt);
   }
 
   get started(): boolean {
@@ -107,20 +154,62 @@ export class Match {
 
   join(sessionId: string, nickname: string): Outbound[] {
     if (this.isFull) throw new Error("Match is full");
-    this.seats.push({ sessionId, nickname, color: null, connected: true });
-    return this.isFull ? this.start() : [];
+    this.seats.push({
+      sessionId,
+      nickname,
+      color: null,
+      connected: true,
+      graceEndsAt: null,
+      graceAnnounced: false,
+    });
+    return this.isFull ? this.start() : this.lobby();
   }
 
+  /**
+   * The player's connection dropped; they may come back with their reconnect token (R13). In an
+   * active match the 60-second grace starts and their clock keeps running (R12).
+   */
+  disconnect(sessionId: string): Outbound[] {
+    const seat = this.seat(sessionId);
+    if (!seat) return [];
+    if (!this.started) return this.leave(sessionId);
+    seat.connected = false;
+    seat.graceEndsAt = this.isActive ? this.now() + RECONNECT_GRACE_MS : null;
+    seat.graceAnnounced = false;
+    return this.snapshots();
+  }
+
+  /** The player came back. They get the latest authoritative state; nothing is re-rolled. */
+  reconnect(sessionId: string): Outbound[] {
+    const seat = this.seat(sessionId);
+    if (!seat) return [];
+    seat.connected = true;
+    seat.graceEndsAt = null;
+    seat.graceAnnounced = false;
+    return this.snapshots();
+  }
+
+  /**
+   * The player left for good (a deliberate leave, or a reconnection the room gave up on). Before
+   * the match starts this frees the seat; during it, there is no grace to wait for, so the
+   * opponent may claim victory straight away.
+   */
   leave(sessionId: string): Outbound[] {
     const seat = this.seat(sessionId);
     if (!seat) return [];
     if (!this.started) {
       // Nobody has played yet: free the seat for someone else.
       this.seats.splice(this.seats.indexOf(seat), 1);
-      return [];
+      return this.lobby();
     }
     seat.connected = false;
+    seat.graceEndsAt = this.isActive ? this.now() : null;
+    seat.graceAnnounced = true;
     return this.snapshots();
+  }
+
+  private get isActive(): boolean {
+    return this.game?.status.state === "active";
   }
 
   handle(sessionId: string, msg: ClientMessage): Outbound[] {
@@ -165,8 +254,19 @@ export class Match {
         if (msg.payload.accept) return this.apply(sessionId, color, { type: "agreeDraw" });
         this.drawOfferFrom = null;
         return this.snapshots();
-      case "claimVictory":
-        return this.error(sessionId, "cannotClaim", "Nothing to claim");
+      case "claimVictory": {
+        // R12: only once the disconnected opponent's grace has run out.
+        const opp = this.seats.find((s) => s.color === opponent(color));
+        const now = this.now();
+        if (!opp || opp.connected || opp.graceEndsAt === null || now < opp.graceEndsAt) {
+          return this.error(
+            sessionId,
+            "cannotClaim",
+            "You can claim victory only after your opponent's reconnect grace runs out",
+          );
+        }
+        return this.apply(sessionId, color, { type: "abandon", color: opponent(color) });
+      }
       case "rematch":
         return this.error(sessionId, "matchNotActive", "Rematches are only possible after a match");
     }
@@ -184,7 +284,7 @@ export class Match {
           nickname: s.nickname,
           color: s.color,
           connected: s.connected,
-          graceEndsAt: null,
+          graceEndsAt: s.graceEndsAt,
         })),
       you: this.seat(sessionId)?.color ?? null,
       timeControl: this.timeControl,
@@ -192,6 +292,7 @@ export class Match {
       drawOfferFrom: this.drawOfferFrom,
       rematchRequestedBy: [],
       seq: this.log.length,
+      serverTime: this.now(),
     };
   }
 
@@ -221,8 +322,11 @@ export class Match {
     }
     this.game = result.state;
     const now = this.now();
-    if (this.game.status.state !== "active") this.clock?.stop(now);
-    else if (action.type === "move") this.clock?.press(by, this.game.turn, now);
+    if (this.game.status.state !== "active") {
+      this.clock?.stop(now);
+      // Nothing left to claim: a pending grace no longer matters.
+      for (const s of this.seats) s.graceEndsAt = null;
+    } else if (action.type === "move") this.clock?.press(by, this.game.turn, now);
     // Any action ends a pending draw offer; agreeing to it is itself an action.
     this.drawOfferFrom = null;
     const seq = this.log.length + 1;
@@ -241,6 +345,20 @@ export class Match {
       type: "snapshot" as const,
       payload: this.snapshotFor(s.sessionId),
     }));
+  }
+
+  /** Waiting-room update for everyone seated, until the match starts (PRD 6.6). */
+  private lobby(): Outbound[] {
+    if (this.started) return [];
+    const payload = {
+      roomId: this.matchId,
+      private: this.isPrivate,
+      timeControl: this.timeControl,
+      players: this.seats.map((s) => ({ nickname: s.nickname })),
+      expiresAt: this.lobbyExpiresAt,
+      serverTime: this.now(),
+    };
+    return this.seats.map((s) => ({ to: s.sessionId, type: "lobby" as const, payload }));
   }
 
   private error(sessionId: string, code: ErrorCode, message: string): Outbound[] {

@@ -9,7 +9,48 @@ Clocks (R11, R17): create the room with `{ "timeControl": "5+3" }` (also `10+5`,
 `untimed`; default `10+5`). Snapshots carry `clocks`; the room arms a timer for the next possible
 flag, and any message arriving after the deadline loses on time first.
 
-Not yet: reconnect grace, private room codes, matchmaking, rematch (later M4 steps).
+Reconnection (R12, R13, R18):
+
+- A dropped connection holds the player's seat. The opponent gets a snapshot with that player
+  `connected: false` and `graceEndsAt` (compare with the snapshot's `serverTime`); the clock
+  keeps running. When the 60 s grace ends, both get a snapshot and the opponent may send
+  `claimVictory` (a win by abandonment) or keep waiting. The seat stays open while they wait.
+- The `@colyseus/sdk` client reconnects on its own after a short network drop, but only for
+  rooms that have been up at least 5 s. After a page reload, call
+  `client.reconnect(room.reconnectionToken)` with the token saved when joining (R13). Either
+  way the player gets their seat back and a fresh snapshot; nothing is re-rolled.
+- A deliberate `room.leave()` during a match starts no grace (R18): the opponent may claim at once.
+- The room closes once both players are gone for good (the match is over, or both graces ran out).
+
+Private rooms (PRD 5.2, D7), room name `private`:
+
+- Host: `client.create("private", { nickname, timeControl })`, where `timeControl` is required
+  (`5+3`, `10+5`, `30+0` or `untimed`). The room ID is a 6-character invite code, for example
+  `K7PQ2M`; the invite link is just `<web origin>/join/K7PQ2M`.
+- While waiting, everyone in the room gets `lobby` messages (code, time control, players, when
+  the invite expires). The first `snapshot` means the match started.
+- Guest: `client.joinById(normalizeRoomCode(input), { nickname })`. `normalizeRoomCode` (from
+  `@pokemon-chess/protocol`) accepts a code typed in any case, with spaces or dashes, or a whole
+  pasted link.
+- The room is private (never matched by `joinOrCreate`) and locks at two players, so a third
+  player gets "room is locked". An unknown code gets "not found".
+- The invite expires if the host leaves before anyone joins, or after 30 minutes unused (the host
+  first gets an `error` with code `roomExpired`).
+
+Matchmaking (PRD 5.1, D8), room name `queue`:
+
+- Search: `client.joinOrCreate("queue", { nickname })`. While searching you get `queue` messages
+  (players searching, when you joined, server time) for the PRD 6.5 screen.
+- Cancel: `room.leave()` on the queue room.
+- The two longest-waiting players are paired. The queue creates an unlisted 10+5 `match` room
+  and sends each player `matchFound` with their seat reservation and the opponent's nickname.
+  Enter with `client.consumeSeatReservation(msg.reservation)`, then leave the queue room.
+  Colours and Pokémon are rolled in the match.
+- A paired player has 20 s to enter (`MatchRoom.noShowTimeoutMs`). If the opponent never
+  arrives, the player who did gets an `error` with code `matchCancelled` and is sent back; the
+  client should search again.
+
+Not yet: rematch and the results screen (last M4 step).
 
 ## Run it
 

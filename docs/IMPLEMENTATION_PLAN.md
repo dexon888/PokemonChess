@@ -42,11 +42,15 @@ One small PR each, in order:
 - [x] `apps/server` with `MatchRoom`: Colyseus room running the engine authoritatively with a
       seeded `Rng`, an event log, events + snapshot broadcast; untimed; integration tests
 - [x] Clocks (R11): increments on every action including bonus actions, timeout loses (R17)
-- [ ] Reconnection (R12, R13): nickname, reconnect token, 60 s grace with the clock running,
+- [x] Reconnection (R12, R13, R18): nickname, reconnect token, 60 s grace with the clock running,
       claim victory after it
-- [ ] Private rooms: room code and invite link, time-control choice, no third player
-- [ ] Matchmaking: `QueueRoom` at 10+5 with cancel
-- [ ] Web client: home, matchmaking and lobby screens; online game driven by server events
+- [x] Private rooms: room code and invite link, time-control choice, no third player (D7)
+- [x] Matchmaking: `QueueRoom` at 10+5 with cancel (D8)
+- [x] Web client, private rooms: home (nickname, create with a time control, join by code or link),
+      lobby (code, copy invite link), online game driven by server events (clocks, offline
+      grace and claim victory, draw offers, resign); local hot-seat kept at `/local`
+- [ ] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
+      with the saved reconnection token (R13)
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
 
 ## Post-MVP ideas

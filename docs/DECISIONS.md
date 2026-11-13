@@ -5,6 +5,9 @@ Approved changes and clarifications to the PRD. Newest first. Gameplay rules liv
 
 | ID  | Date       | Decision                                                                                                            | Reason                                                                                   |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| D8  | 2026-11-10 | Matchmaking pairs first come, first served at 10+5; a paired player has 20 s to enter or the match is cancelled     | Simple and fair while there are few players; no ratings yet (PRD 1.4)                    |
+| D7  | 2026-11-10 | Private invites: the room ID is a 6-character code (no look-alike characters); unused rooms expire after 30 minutes | Easy to read aloud or type; old invites stop working instead of lingering                |
+| R18 | 2026-11-09 | A deliberate leave starts no grace; the opponent may claim victory at once                                          | R12 covers dropped connections only; a leaver is not coming back                         |
 | R17 | 2026-11-09 | White's clock starts when both players are seated; it stops when the game ends                                      | R11 had no start rule; no lobby step exists yet to delay it                              |
 | D6  | 2026-11-09 | Server → client sync uses plain JSON messages (events + full snapshot), not Colyseus schema state                   | The engine's GameState is already JSON; events let clients animate exactly what happened |
 | D5  | 2026-11-08 | Hosting: one Node service (server + built client) on Railway or Fly.io                                              | WebSockets need a long-lived process; Render's free tier sleeps                          |
