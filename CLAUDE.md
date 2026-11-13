@@ -10,7 +10,8 @@ project for playing with friends.
   (online multiplayer, Colyseus) is in progress**; its step-by-step breakdown is at the end of
   `docs/IMPLEMENTATION_PLAN.md`.
 - `apps/server` runs one authoritative `MatchRoom` per game with chess clocks (R11, R17), reconnection (R12, R13, R18), private rooms joined by invite code (D7) and a matchmaking queue (D8).
-  Next (last M4 step): rematch and the results screen.
+  Rematches swap colours (R19). Every M4 step is built; the M4 exit gate (two devices finish a
+  game and survive a disconnect) still needs a run on two real devices.
 - The engine plays a full game: legal moves, battles, bonus turns, castling, en passant,
   promotion, wins and draws. Perft matches standard chess to depth 3.
 - `apps/web` plays online: Find Match or a private room, then a game screen driven by server events
@@ -27,7 +28,7 @@ project for playing with friends.
 ## Source of truth
 
 - Rules: `docs/GAME_RULES.md` (wins over `docs/PRD.md`). Decision log: `docs/DECISIONS.md`.
-  All 18 rule decisions (R1–R18) and the stack decisions (D1–D8) are approved.
+  All 19 rule decisions (R1–R19) and the stack decisions (D1–D8) are approved.
 - Architecture: `docs/ARCHITECTURE.md`. Roadmap and progress: `docs/IMPLEMENTATION_PLAN.md`.
 - Never change gameplay silently. Propose the change, get approval, then update
   `GAME_RULES.md` and `DECISIONS.md` in the same PR.

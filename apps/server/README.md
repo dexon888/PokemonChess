@@ -50,7 +50,11 @@ Matchmaking (PRD 5.1, D8), room name `queue`:
   arrives, the player who did gets an `error` with code `matchCancelled` and is sent back; the
   client should search again.
 
-Not yet: rematch and the results screen (last M4 step).
+Rematch (PRD 5.5, R19): after a game either player sends `rematch`; snapshots show
+`rematchRequestedBy`. When both have asked, the next game starts in the same room: colours swap,
+new Pokémon, fresh clocks, `game` goes up by one and `seq` restarts at 0 (clients reset their
+log). Snapshots also carry `stats` (captures, super-effective hits, crits, dodges per side),
+counted from the current game's log; earlier games stay in `match.pastLogs`.
 
 ## Run it
 
