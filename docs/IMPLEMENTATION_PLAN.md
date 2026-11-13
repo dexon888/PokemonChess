@@ -52,3 +52,27 @@ One small PR each, in order:
 - [x] Web client, matchmaking: Find Match and the searching screen; rejoin after a page reload
       with the saved reconnection token (R13)
 - [ ] Rematch (PRD 5.5) and results screen (PRD 6.7)
+
+## Post-MVP ideas
+
+Not scheduled. Anything that changes gameplay starts as a written proposal and needs approval
+before it touches `GAME_RULES.md`.
+
+- **Team draft mode** (owner idea, 2026-11-09): as an alternative to random assignment, each
+  player picks a team of 6 Pokémon and assigns one to each piece type (king, queen, rook, bishop,
+  knight, pawn). The engine already takes assignment as a function (`createStartingPosition`),
+  so this is mostly a pre-match draft phase plus UI.
+
+  Owner's answers (2026-11-09), to shape the proposal:
+  - One Pokémon per piece type: all eight pawns share one, and each pair of rooks, bishops and
+    knights shares one.
+  - For a dual-type Pokémon, the player chooses the active type.
+  - Drafting is hidden and simultaneous, before the match starts; both players may pick the
+    same Pokémon.
+  - The draft has its own time limit, before the clocked match begins (so R17's clock start
+    would move to the end of the draft for this mode).
+  - Private rooms only (no matchmaking queue).
+
+  Still open: the draft time limit's length; what happens if a player runs out of draft time
+  (random picks for unfilled slots, or forfeit); whether a player may change picks before
+  locking in; and whether both teams are revealed together at the start.
