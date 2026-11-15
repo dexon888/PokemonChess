@@ -54,7 +54,12 @@ describe("narrate", () => {
     const g = game({ ...base, d1: "wQ:Fighting:Machamp", d8: "bR:Rock:Onix" });
     const n = run(g, mv("d1", "d8"), [MISS]);
     expect(n.banner).toMatchObject({ outcome: "superEffective", title: "Super effective!" });
-    expect(n.hit).toMatchObject({ sq: sq("d8"), kind: "superEffective" });
+    expect(n.hit).toMatchObject({
+      sq: sq("d8"),
+      kind: "superEffective",
+      attackerType: "Fighting",
+      crit: false,
+    });
     expect(n.stats.white).toMatchObject({ captures: 1, superEffective: 1 });
     // Newest first: the bonus line comes after the capture.
     expect(n.entries.map((e) => e.tag)).toEqual(["BONUS", "2×"]);

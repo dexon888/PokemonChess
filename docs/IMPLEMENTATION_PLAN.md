@@ -53,6 +53,22 @@ One small PR each, in order:
       with the saved reconnection token (R13)
 - [x] Rematch (PRD 5.5, R19) and results screen with server-counted stats (PRD 6.7)
 
+M4 exit gate passed on 2026-11-15: a PC and a phone on the same Wi-Fi finished a game and
+survived a dropped connection.
+
+## M5 breakdown
+
+One small PR each, in order (PRD 6.2, 6.9, 7):
+
+- [x] Battle effects: a burst in the attacker's type colour for hits (bigger for 2×, flash and
+      starburst on crits), a puff for ½× trades, streaks for dodges, a shield for immunities;
+      timed to the attacker's arrival; off under reduced motion
+- [ ] Sound effects and audio settings (PRD 7.1, 7.3): moves, captures, 2×, ½×, crits, dodges,
+      immunities, victory, defeat; sound on/off and volume, remembered per device
+- [ ] King-threat music (R16, PRD 7.2), with a music on/off setting
+- [ ] Accessibility pass (PRD 6.9): static sprites under reduced motion, dialog focus, online
+      move announcements, contrast and touch-target checks, labels
+
 ## Post-MVP ideas
 
 Not scheduled. Anything that changes gameplay starts as a written proposal and needs approval

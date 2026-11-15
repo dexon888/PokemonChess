@@ -13,6 +13,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { nextFocus, screenCell, squareAt } from "../game/boardNav";
 import { FADE_MS, LUNGE_MS, SLIDE_MS, type Motion } from "../game/motion";
 import { EFFECT_STYLE, ROLE_NAME, TYPE_COLOR, typeCode, typeTextColor } from "../game/theme";
+import type { HitSquare } from "../game/narrate";
+import { BattleEffect, CritFlash } from "./BattleEffect";
 import { PieceIcon } from "./PieceIcon";
 import { Sprite } from "./Sprite";
 
@@ -21,7 +23,7 @@ interface Props {
   selected: Square | null;
   moves: Move[];
   lastMove: { from: Square; to: Square } | null;
-  hitSquare: { sq: Square; kind: BattleOutcome; id: number } | null;
+  hitSquare: HitSquare | null;
   motion: Motion | null;
   flipped: boolean;
   size: number;
@@ -111,6 +113,20 @@ export function Board({
             );
           })}
         </div>
+      )}
+
+      {animate && hitSquare && (
+        <>
+          <BattleEffect
+            key={`fx-${hitSquare.id}`}
+            hit={hitSquare}
+            left={screenCell(hitSquare.sq, flipped).col * q}
+            top={screenCell(hitSquare.sq, flipped).row * q}
+            size={q}
+            delay={hitDelay}
+          />
+          {hitSquare.crit && <CritFlash key={`crit-${hitSquare.id}`} delay={hitDelay} />}
+        </>
       )}
     </div>
   );

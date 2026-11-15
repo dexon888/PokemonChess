@@ -74,6 +74,7 @@ export function useGameView(initial: GameState | null, opts: ViewOptions) {
   const load = useCallback((g: GameState) => {
     setBoth(g);
     setMotion(null);
+    setHitSquare(null);
     setPendingPromotion(null);
     setSelected((s) => (s !== null && g.board[s]?.color === g.turn ? s : null));
   }, []);
@@ -91,7 +92,8 @@ export function useGameView(initial: GameState | null, opts: ViewOptions) {
       setStats(n.stats);
       if (n.entries.length) setLog((l) => [...n.entries, ...l]);
       if (n.banner) setBanner(n.banner);
-      if (n.hit) setHitSquare(n.hit);
+      // Only the latest action's battle may play an effect, so a later move clears it.
+      setHitSquare(n.hit);
       if (n.lastMove) setLastMove(n.lastMove);
       setMotion(motionFromEvents(before, events, nextId()));
       setBoth(after);
