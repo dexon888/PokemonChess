@@ -6,6 +6,7 @@ import {
   type GameEvent,
   type GameState,
   type Piece,
+  type PokemonType,
   type Square,
 } from "@pokemon-chess/engine";
 import { ROLE_NAME } from "./theme";
@@ -41,9 +42,13 @@ export const emptyBothStats = (): Record<Color, Stats> => ({
 });
 
 export interface HitSquare {
+  /** The defender's square, where the battle effect plays. */
   sq: Square;
   kind: BattleOutcome;
   id: number;
+  crit: boolean;
+  /** Colours the impact; missing only if the attacker could not be found. */
+  attackerType?: PokemonType;
 }
 
 export interface Narration {
@@ -161,7 +166,13 @@ export function narrate(
           b = { outcome: "captured", title: "Knocked out", line: `${a} knocked out ${d}.` };
         }
         banner = { ...b, id: nextId() };
-        hit = { sq: e.defenderSquare, kind: r.outcome, id: banner.id };
+        hit = {
+          sq: e.defenderSquare,
+          kind: r.outcome,
+          id: banner.id,
+          crit: r.crit,
+          ...(attacker ? { attackerType: attacker.type } : {}),
+        };
         break;
       }
     }
