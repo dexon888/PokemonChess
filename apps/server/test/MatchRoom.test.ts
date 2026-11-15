@@ -208,3 +208,25 @@ describe("MatchRoom reconnection (R12, R13)", () => {
     expect(matchMaker.getLocalRoomById(room.roomId)).toBeUndefined();
   });
 });
+
+describe("MatchRoom rematch (PRD 5.5)", () => {
+  it("starts game 2 in the same room with colours swapped once both ask", async () => {
+    const { white, black, aSnap, room } = await twoPlayers({ timeControl: "untimed" });
+    black.c.send("resign");
+    await Promise.all([white.in.next("events"), black.in.next("events")]);
+
+    white.c.send("rematch");
+    const seen = await black.in.next("snapshot");
+    expect(seen.rematchRequestedBy).toEqual(["white"]);
+    await white.in.next("snapshot");
+
+    black.c.send("rematch");
+    const [w2, b2] = await Promise.all([white.in.next("snapshot"), black.in.next("snapshot")]);
+    expect(w2.game).toBe(2);
+    expect(w2.you).toBe("black");
+    expect(b2.you).toBe("white");
+    expect(w2.matchId).toBe(room.roomId);
+    expect(w2.state.status).toEqual({ state: "active" });
+    expect(w2.state.board).not.toEqual(aSnap.state.board);
+  });
+});

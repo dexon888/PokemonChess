@@ -1,7 +1,8 @@
 import { opponent, type Color } from "@pokemon-chess/engine";
 import { useEffect, useState } from "react";
 import { AppHeader } from "../components/AppHeader";
-import { GameOverDialog, type Presence } from "../components/Panels";
+import type { Presence } from "../components/Panels";
+import { ResultsDialog } from "../components/ResultsDialog";
 import type { OnlineMatch } from "../net/useOnlineMatch";
 import { GameScreen } from "./GameScreen";
 
@@ -24,7 +25,9 @@ export function OnlineGameScreen({ m }: { m: OnlineMatch }) {
   const game = m.view.game;
   const [flipOverride, setFlipOverride] = useState(false);
   const [showOver, setShowOver] = useState(true);
-  useEffect(() => setShowOver(true), [game?.status]);
+  // Show the results when a game ends, and again whenever a rematch request comes in.
+  const rematchKey = m.snapshot?.rematchRequestedBy.join(",");
+  useEffect(() => setShowOver(true), [game?.status, rematchKey]);
 
   const active = game?.status.state === "active";
   const counting =
@@ -114,7 +117,20 @@ export function OnlineGameScreen({ m }: { m: OnlineMatch }) {
     </>
   );
 
-  const actions = (
+  const actions = !active ? (
+    <div className="flex flex-wrap gap-3">
+      <button
+        type="button"
+        onClick={() => setShowOver(true)}
+        className="h-12 flex-1 rounded-xl bg-accent font-semibold text-ink-dark"
+      >
+        Results
+      </button>
+      <button type="button" onClick={m.leave} className="btn h-12 flex-1">
+        Back to home
+      </button>
+    </div>
+  ) : (
     <div className="flex flex-wrap gap-3">
       {canClaim && (
         <button
@@ -181,12 +197,12 @@ export function OnlineGameScreen({ m }: { m: OnlineMatch }) {
         actions={actions}
       />
 
-      {showOver && (
-        <GameOverDialog
-          game={game}
-          stats={m.view.stats}
-          onNewGame={m.leave}
-          newGameLabel="Back to home"
+      {showOver && !active && (
+        <ResultsDialog
+          s={s}
+          names={names}
+          onRematch={m.rematch}
+          onHome={m.leave}
           onClose={() => setShowOver(false)}
         />
       )}

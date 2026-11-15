@@ -17,6 +17,7 @@ import {
   type ClientMessage,
   type ErrorCode,
   type MatchSnapshot,
+  type MatchStats,
   type ServerMessages,
   type TimeControlId,
 } from "@pokemon-chess/protocol";
@@ -77,7 +78,12 @@ export class Match {
   /** Current time in ms. Public so tests can move time forward. */
   now: () => number;
   private readonly seats: Seat[] = [];
-  private readonly clock: ChessClock | null;
+  private clock: ChessClock | null;
+  /** Which game in this room (1, then 2 after a rematch…). */
+  private gameNumber = 1;
+  /** Logs of earlier games in this room, oldest first; `log` is the current game. */
+  readonly pastLogs: LogRecord[][] = [];
+  private readonly rematchRequestedBy = new Set<Color>();
   private game: GameState | null = null;
   private drawOfferFrom: Color | null = null;
 
@@ -88,8 +94,8 @@ export class Match {
     this.setup = opts.setup;
     this.isPrivate = opts.isPrivate ?? false;
     this.now = opts.now ?? Date.now;
-    const tc = TIME_CONTROLS[opts.timeControl];
-    this.clock = tc ? new ChessClock(tc.initialMs, tc.incrementMs) : null;
+
+    this.clock = this.newClock();
   }
 
   /** Milliseconds until the side to move runs out of time; null when untimed or not running. */
@@ -219,6 +225,7 @@ export class Match {
     const color = seat.color;
     // A message that arrives after the deadline loses the race: the flag falls first.
     const timedOut = this.tick();
+    if (msg.type === "rematch") return [...timedOut, ...this.requestRematch(sessionId, color)];
     const game = this.game;
     if (!game || game.status.state !== "active") {
       return [
@@ -267,9 +274,63 @@ export class Match {
         }
         return this.apply(sessionId, color, { type: "abandon", color: opponent(color) });
       }
-      case "rematch":
-        return this.error(sessionId, "matchNotActive", "Rematches are only possible after a match");
     }
+  }
+
+  /**
+   * PRD 5.5: after a game, either player may ask for a rematch; the other sees the request. When
+   * both have asked, the next game starts in the same room with colours swapped (R19), new
+   * Pokémon and types, and fresh clocks. Nothing from the old game carries over.
+   */
+  private requestRematch(sessionId: string, color: Color): Outbound[] {
+    if (!this.game || this.isActive) {
+      return this.error(
+        sessionId,
+        "matchNotActive",
+        "You can ask for a rematch once the game is over",
+      );
+    }
+    this.rematchRequestedBy.add(color);
+    if (this.rematchRequestedBy.size < 2) return this.snapshots();
+
+    this.pastLogs.push(this.log.splice(0));
+    this.gameNumber += 1;
+    for (const s of this.seats) {
+      if (s.color) s.color = opponent(s.color);
+      s.graceEndsAt = null;
+      s.graceAnnounced = false;
+    }
+    this.rematchRequestedBy.clear();
+    this.drawOfferFrom = null;
+    this.clock = this.newClock();
+    const position = this.setup?.position ?? createRandomStartingPosition(ROSTER_V1, this.rng);
+    this.game = newGame(position);
+    this.clock?.start(this.game.turn, this.now());
+    return this.snapshots();
+  }
+
+  private newClock(): ChessClock | null {
+    const tc = TIME_CONTROLS[this.timeControl];
+    return tc ? new ChessClock(tc.initialMs, tc.incrementMs) : null;
+  }
+
+  /** Captures, super-effective hits and crits by the attacker; dodges by the defender (PRD 6.7). */
+  private stats(): Record<Color, MatchStats> {
+    const s: Record<Color, MatchStats> = {
+      white: { captures: 0, superEffective: 0, crits: 0, dodges: 0 },
+      black: { captures: 0, superEffective: 0, crits: 0, dodges: 0 },
+    };
+    for (const record of this.log) {
+      for (const e of record.events) {
+        if (e.type !== "battle") continue;
+        const r = e.result;
+        if (r.outcome === "dodged") s[opponent(e.color)].dodges++;
+        if (r.defenderRemoved) s[e.color].captures++;
+        if (r.outcome === "superEffective") s[e.color].superEffective++;
+        if (r.crit) s[e.color].crits++;
+      }
+    }
+    return s;
   }
 
   /** The snapshot as seen by one session (or by an observer when `sessionId` is unknown). */
@@ -277,7 +338,9 @@ export class Match {
     if (!this.game) throw new Error("Match has not started");
     return {
       matchId: this.matchId,
+      game: this.gameNumber,
       state: this.game,
+      stats: this.stats(),
       players: this.seats
         .filter((s): s is Seat & { color: Color } => s.color !== null)
         .map((s) => ({
@@ -290,7 +353,7 @@ export class Match {
       timeControl: this.timeControl,
       clocks: this.clock?.state(this.now()) ?? null,
       drawOfferFrom: this.drawOfferFrom,
-      rematchRequestedBy: [],
+      rematchRequestedBy: [...this.rematchRequestedBy],
       seq: this.log.length,
       serverTime: this.now(),
     };

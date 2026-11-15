@@ -85,3 +85,10 @@ Any move onto an enemy piece, or an en passant capture, is a battle. Resolve in 
 
 The king-threat music plays when any enemy piece has a legal capture on your king that is not 0×.
 It is audiovisual only and never restricts moves. (R16)
+
+## 8. Rematches
+
+- After a game ends, either player may ask for a rematch; it starts only when both have asked.
+  (PRD 5.5)
+- The rematch is a new game in the same room with the same time control: colours swap, every
+  piece gets a new random Pokémon and active type, and clocks start fresh. (R19)
