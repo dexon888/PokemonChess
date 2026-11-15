@@ -8,3 +8,7 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
+
+# Local sound files (D9): Pokémon audio for private play, never committed. See README.md there.
+apps/web/public/sfx/*
+!apps/web/public/sfx/README.md
