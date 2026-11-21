@@ -1,3 +1,4 @@
+import { SoundControl } from "./SoundControl";
 import type { ReactNode } from "react";
 
 /** Logo, title, an optional context badge and screen-specific controls on the right. */
@@ -20,11 +21,14 @@ export function AppHeader({ badge, children }: { badge?: string; children?: Reac
           </span>
         )}
       </div>
-      {children && (
-        <nav className="flex items-center gap-2" aria-label="Game controls">
-          {children}
-        </nav>
-      )}
+      <div className="flex items-center gap-2">
+        {children && (
+          <nav className="flex items-center gap-2" aria-label="Game controls">
+            {children}
+          </nav>
+        )}
+        <SoundControl />
+      </div>
     </header>
   );
 }

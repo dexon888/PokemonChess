@@ -8,6 +8,8 @@ import {
   type Square,
 } from "@pokemon-chess/engine";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { soundsFor } from "../audio/cues";
+import { playSfx } from "../audio/sfx";
 import { motionFromEvents, type Motion } from "./motion";
 import {
   emptyBothStats,
@@ -49,6 +51,9 @@ export function useGameView(initial: GameState | null, opts: ViewOptions) {
   const [hitSquare, setHitSquare] = useState<HitSquare | null>(null);
   const [motion, setMotion] = useState<Motion | null>(null);
   const counter = useRef(0);
+  // Whose ears the sounds are for: your colour online; a hot-seat game hears every win as victory.
+  const listenerRef = useRef<Color | null>(null);
+  listenerRef.current = opts.controls === "both" || opts.controls === "none" ? null : opts.controls;
   const nextId = useCallback(() => ++counter.current, []);
 
   const setBoth = (g: GameState | null) => {
@@ -95,7 +100,12 @@ export function useGameView(initial: GameState | null, opts: ViewOptions) {
       // Only the latest action's battle may play an effect, so a later move clears it.
       setHitSquare(n.hit);
       if (n.lastMove) setLastMove(n.lastMove);
-      setMotion(motionFromEvents(before, events, nextId()));
+      const motion = motionFromEvents(before, events, nextId());
+      setMotion(motion);
+      // Sounds land with the battle effect (no delay when animations are off).
+      const impact = prefersReducedMotion() ? 0 : motion.impactDelay;
+      const delay = { now: 0, impact, end: impact + 450 };
+      for (const cue of soundsFor(events, listenerRef.current)) playSfx(cue.sfx, delay[cue.at]);
       setBoth(after);
       setSelected(null);
       setPendingPromotion(null);
@@ -163,3 +173,6 @@ export function useGameView(initial: GameState | null, opts: ViewOptions) {
 }
 
 export type GameView = ReturnType<typeof useGameView>;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

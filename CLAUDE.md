@@ -22,7 +22,8 @@ project for playing with friends.
   plays what the events report. The board is an ARIA grid with keyboard play
   (`apps/web/src/game/boardNav.ts`). The battle log collapses on phones. All listed M3 polish
   items are done. Battles play type-coloured effects (`apps/web/src/components/BattleEffect.tsx`)
-  on top of the motion; sound comes next.
+  on top of the motion, with sound effects (`apps/web/src/audio/`) on the same beat; king-threat
+  music comes next.
 - Live progress: `docs/IMPLEMENTATION_PLAN.md`. Update it in every PR that finishes an item.
 
 ## Source of truth
@@ -90,4 +91,7 @@ project for playing with friends.
 - Every engine rule gets a test, including the edge cases in PRD §9.
 - The server is authoritative (from M4). The client never computes battle outcomes online.
 - Record every third-party asset in `docs/ASSET_LICENSES.md`. Sprites are hotlinked from the
-  Showdown sprite server for local dev only; mirror them before any deploy. No Pokémon audio.
+  Showdown sprite server for local dev only; mirror them before any deploy.
+- Sound effects (D9): the owner may use Pokémon game audio for private play. Those files live
+  only in the gitignored `apps/web/public/sfx/` folder, never in the repo (it is public); every
+  sound has a synthesized fallback in `apps/web/src/audio/`.

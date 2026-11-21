@@ -63,7 +63,7 @@ One small PR each, in order (PRD 6.2, 6.9, 7):
 - [x] Battle effects: a burst in the attacker's type colour for hits (bigger for 2×, flash and
       starburst on crits), a puff for ½× trades, streaks for dodges, a shield for immunities;
       timed to the attacker's arrival; off under reduced motion
-- [ ] Sound effects and audio settings (PRD 7.1, 7.3): moves, captures, 2×, ½×, crits, dodges,
+- [x] Sound effects and audio settings (PRD 7.1, 7.3, D9): moves, captures, 2×, ½×, crits, dodges,
       immunities, victory, defeat; sound on/off and volume, remembered per device
 - [ ] King-threat music (R16, PRD 7.2), with a music on/off setting
 - [ ] Accessibility pass (PRD 6.9): static sprites under reduced motion, dialog focus, online
